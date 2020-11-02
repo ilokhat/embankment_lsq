@@ -66,16 +66,18 @@ def get_roads_for_face(f, ntree):
     return rs
 
 def displace_line_from_centroid_when_snapped_to_road(face, line):
+    DISPLACEMENT_VECTOR_SIZE = 0.3 #1
+    TOL_SNAPPING = 0.05
     centroid = face.centroid
     new_coords = []
     for c in line.coords:
-        #print(c, centroid)
-        p2d = np.array(c[:2])
-        if face.exterior.contains(Point(*c)):
+        if face.exterior.contains(Point(*c)) or face.exterior.distance(Point(*c)) <= TOL_SNAPPING:
+            p2d = np.array(c[:2])
             vec = np.array(centroid.coords) - p2d 
-            vec = vec / np.linalg.norm(vec)
+            vec = (vec / np.linalg.norm(vec)) * DISPLACEMENT_VECTOR_SIZE
             new_p2d = Point(*(p2d + vec))
             if face.contains(new_p2d):
+                #print(f'POINT({new_p2d.x} {new_p2d.y})')
                 new_coords.append([new_p2d.x, new_p2d.y, c[2]])
                 continue
         new_coords.append(c)
@@ -105,9 +107,9 @@ if __name__ == "__main__":
     network_file = "/home/imran/projets/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
     talus_file = "/home/imran/projets/talus/Donnees_talus/o_ligne_n0.shp"
 
+    faces = fiona.open(faces_file, 'r')
     FACE = faces[1641]
 
-    faces = fiona.open(faces_file, 'r')
     ntree, ttree = get_STRtrees(network_file, talus_file)
     print(get_roads_for_face(FACE, ntree))
     print(get_talus_inside_face(FACE, ttree))

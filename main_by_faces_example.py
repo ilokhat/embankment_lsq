@@ -9,11 +9,11 @@ faces_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/faces_reseau.shp"
 network_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
 talus_file = "/mnt/data/mac/work/talus/Donnees_talus/o_ligne_n0.shp"
 
-LSDisplacer.set_params(MAX_ITER=250, PAngles=50, PEdges_ext=2, PEdges_int=10, PDistRoads=1000, DIST='MIN')
-loglsd.setLevel(logging.WARNING)
+LSDisplacer.set_params(MAX_ITER=250, PAngles=50, PEdges_ext=2, PEdges_int=10, PDistRoads=1000, DIST='MIN', NORM_DX=0.3)
+#loglsd.setLevel(logging.WARNING)
 
 MAX_MAT_SIZE = 400 #300 #1200
-FACE = 7901 #1641 #1153 #752
+FACE = 6850 #8942 #8890 #1641 #1153 #752
 DECIMATE_EDGES = False
 BUF = 15 # 6.5
 
@@ -21,12 +21,16 @@ faces = fiona.open(faces_file, 'r')
 ntree, ttree = get_STRtrees(network_file, talus_file)
 start = timer()
 for i, f in enumerate(faces):
-    # if i != FACE:
-    #     continue
+    if i != FACE:
+        continue
     # if i < 6308:
     #     continue
     roads_shapes = get_roads_for_face(f, ntree)
+    # for r in roads_shapes:
+    #     print(r)
     talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=True)
+    # for t in talus_shapes:
+    #     print(t)
     nb_tals = len(talus_shapes)
     talus_lengths = [len(t.coords) for t in talus_shapes]
     print("Face", i, "| nb talus:", nb_tals, "| nb points talus:", sum(talus_lengths), "| nb roads:", len(roads_shapes))
