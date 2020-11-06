@@ -104,7 +104,7 @@ class LSDisplacer:
             el = edge_length(e, self.points_talus.reshape(-1))
             if el < self.edges_dist_min and num_talus(e[0], self.talus_lengths) != num_talus(e[1], self.talus_lengths):
                 loglsd.debug("min reached inter edges")
-                el = self.EDGES_D_MIN
+                el = self.edges_dist_min
             edges_lengths_ori.append(el)
         return np.array(edges_lengths_ori)
 
