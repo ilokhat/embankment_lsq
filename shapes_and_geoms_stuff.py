@@ -66,9 +66,10 @@ def get_roads_for_face(f, ntree):
     return rs
 
 def displace_line_from_centroid_when_snapped_to_road(face, line):
-    DISPLACEMENT_VECTOR_SIZE = 0.3 #1
+    DISPLACEMENT_VECTOR_SIZE = 1. #1
     TOL_SNAPPING = 0.05
     centroid = face.centroid
+    #print(centroid)
     new_coords = []
     for c in line.coords:
         if face.exterior.contains(Point(*c)) or face.exterior.distance(Point(*c)) <= TOL_SNAPPING:
@@ -79,6 +80,15 @@ def displace_line_from_centroid_when_snapped_to_road(face, line):
             if face.contains(new_p2d):
                 #print(f'POINT({new_p2d.x} {new_p2d.y})')
                 new_coords.append([new_p2d.x, new_p2d.y, c[2]])
+                continue
+            else: # on le bouge au hasard pour le faire entrer dans la face
+                while True:
+                    vec = np.random.randn(2)
+                    vec = (vec / np.linalg.norm(vec)) * (DISPLACEMENT_VECTOR_SIZE / 2.)
+                    new_p2d = Point(*(p2d + vec))
+                    if face.contains(new_p2d):
+                        new_coords.append([new_p2d.x, new_p2d.y, c[2]])
+                        break
                 continue
         new_coords.append(c)
     #print(new_coords)

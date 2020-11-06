@@ -9,13 +9,23 @@ faces_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/faces_reseau.shp"
 network_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
 talus_file = "/mnt/data/mac/work/talus/Donnees_talus/o_ligne_n0.shp"
 
-LSDisplacer.set_params(MAX_ITER=250, PAngles=50, PEdges_ext=2, PEdges_int=10, PDistRoads=1000, DIST='MIN', NORM_DX=0.3)
-#loglsd.setLevel(logging.WARNING)
+LSDisplacer.set_params(MAX_ITER=250, DIST='MIN', ANGLES_CONST=True, NORM_DX=0.3,
+                       PAngles=25, PEdges_ext=50, Pedges_ext_far=0, PEdges_int=10, PEdges_int_non_seg=25, PDistRoads=1000)
+#loglsd.setLevel(logging.WARNING) # par défaut on est en level INFO
+#loglsd.setLevel(logging.DEBUG)
 
-MAX_MAT_SIZE = 400 #300 #1200
-FACE = 6850 #8942 #8890 #1641 #1153 #752
+MAX_MAT_SIZE = 550 #400 #300 #1200
+FACE = 3127 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
 DECIMATE_EDGES = False
 BUF = 15 # 6.5
+EDGES_D_MIN = 10.
+EDGES_D_MAX = 30.
+
+# on log si on est en warning level plus restrictif, on ne log pas les itérations pour chaque calcul par ex..
+if loglsd.level == logging.WARNING:
+    logfile = f'out_a_{LSDisplacer.PAngles}_eext_{LSDisplacer.PEdges_ext}_eint_{LSDisplacer.PEdges_int}.log'
+    fh = logging.FileHandler(logfile)
+    loglsd.addHandler(fh)
 
 faces = fiona.open(faces_file, 'r')
 ntree, ttree = get_STRtrees(network_file, talus_file)
@@ -23,8 +33,8 @@ start = timer()
 for i, f in enumerate(faces):
     if i != FACE:
         continue
-    # if i < 6308:
-    #     continue
+    # if i > 100:
+    #     break
     roads_shapes = get_roads_for_face(f, ntree)
     # for r in roads_shapes:
     #     print(r)
@@ -33,30 +43,40 @@ for i, f in enumerate(faces):
     #     print(t)
     nb_tals = len(talus_shapes)
     talus_lengths = [len(t.coords) for t in talus_shapes]
-    print("Face", i, "| nb talus:", nb_tals, "| nb points talus:", sum(talus_lengths), "| nb roads:", len(roads_shapes))
+    msg = f'Face {i} | nb talus: {nb_tals} | nb points talus: {sum(talus_lengths)} | nb roads: {len(roads_shapes)}'
+    loglsd.warning(msg)
     # on ne traite pas les faces sans talus, celles ou il y a 2 points(pas de triangulation), ou trop grosses
     if nb_tals == 0 or sum(talus_lengths) == 2 or len(roads_shapes) > 20 or len(talus_shapes) > 10 : 
-        print('Skipped, no talus or only 2 points or too much roads or talus')
-        print('----------------------------------------------------------------------')
+        loglsd.warning('Skipped, no talus or only 2 points or too much roads or talus')
+        loglsd.warning('----------------------------------------------------------------------')
         continue
     
     points_talus = get_points_talus(talus_shapes)
     edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
+    for e in edges:
+        seg = f'LINESTRING({points_talus[e[0]][0]} {points_talus[e[0]][1]}, {points_talus[e[1]][0]} {points_talus[e[1]][1]})'
+        print(seg)
+
     nb_angles = len(points_talus) - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
-    print(f'nb angles: {nb_angles} | nb edges selected: {len(edges)}')
+    msg = f'nb angles: {nb_angles} | nb edges selected: {len(edges)}'
+    loglsd.warning(msg)
     
-    displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF)
+    displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
     p = displacer.get_P()
+    msg = f'P shape: {p.shape[0]}'
+    loglsd.warning(msg)
     if p.shape[0] > MAX_MAT_SIZE: #300:
-        print("Skipped, big matrix", p.shape[0])
-        print('----------------------------------------------------------------------')
+        msg = f'Skipped, too big, limit set to {MAX_MAT_SIZE}'
+        loglsd.warning(msg)
+        loglsd.warning('----------------------------------------------------------------------')
         continue
-    print("P shape: ", p.shape[0])
+    
     res = displacer.square()
-    displacer.print_linestrings_wkts()
-    print('----------------------------------------------------------------------')
+    for l in displacer.get_linestrings_wkts():
+        loglsd.warning(l)
+    loglsd.warning('----------------------------------------------------------------------')
 
 end = timer()
-print(f"done in {(end - start):.0f} s")
+loglsd.warning(f"done in {(end - start):.0f} s")
 faces.close()

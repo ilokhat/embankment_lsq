@@ -32,29 +32,31 @@ class LSDisplacer:
     H = 2.0 #1.0
     PFix = 1.
     PEdges_int = 10 #10
+    PEdges_int_non_seg = 5
     PEdges_ext = 2
+    Pedges_ext_far = 0
     PAngles = 50 #50 #25
     PDistRoads = 1000
 
-    def __init__(self, points_talus, roads_shapes, talus_lengths, edges, buffer=15):
+
+    def __init__(self, points_talus, roads_shapes, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
         self.roads_shapes = roads_shapes
         self.talus_lengths = talus_lengths
         self.edges = edges
         self.buffer = buffer
+        self.edges_dist_min = edges_dist_min
+        self.edges_dist_max = edges_dist_max
         self.x_courant = self.points_talus.reshape(-1).copy()
         # 2 * nb points talus
         self.nb_vars = len(self.x_courant)
-        self.e_lengths_ori = []
-        for e in edges:
-            self.e_lengths_ori.append(edge_length(e, points_talus.reshape(-1)))
-        self.e_lengths_ori = np.array(self.e_lengths_ori)
+        self.e_lengths_ori = self._get_edges_lengths(self.edges) # np.array(self.e_lengths_ori)
         self.angles_ori = self.angles_crossprod()
         self.P = self.get_P()
 
     def set_params(MAX_ITER=250, NORM_DX=0.3, H=2.0, DIST='MIN', KKT=False,
                    ID_CONST=True, ANGLES_CONST=True, EDGES_CONST=True, DIST_CONST=True,
-                   PFix=1., PEdges_int=10, PEdges_ext=2, PAngles=50, PDistRoads=1000):
+                   PFix=1., PEdges_int=10, PEdges_ext=2, PAngles=50, Pedges_ext_far=0, PEdges_int_non_seg=5, PDistRoads=1000):
         LSDisplacer.MAX_ITER = MAX_ITER
         LSDisplacer.NORM_DX = NORM_DX
         LSDisplacer.DIST = DIST
@@ -66,10 +68,11 @@ class LSDisplacer:
         LSDisplacer.H = H
         LSDisplacer.PFix = PFix
         LSDisplacer.PEdges_int = PEdges_int
+        LSDisplacer.PEdges_int_non_seg = PEdges_int_non_seg
         LSDisplacer.PEdges_ext = PEdges_ext
+        LSDisplacer.Pedges_ext_far = Pedges_ext_far
         LSDisplacer.PAngles = PAngles
         LSDisplacer.PDistRoads = PDistRoads
-
 
     # utility method to build a shapely line for points starting at offset and having size number of points
     def _line_from_points(points, offset, size):
@@ -83,6 +86,27 @@ class LSDisplacer:
             t = LSDisplacer._line_from_points(points, offset, size)
             print(t)
             offset += size
+    
+    def get_linestrings_wkts(self):
+        points = self.x_courant.reshape(-1, 2)
+        offset = 0
+        lines = []
+        for size in self.talus_lengths:
+            t = LSDisplacer._line_from_points(points, offset, size)
+            lines.append(t.wkt)
+            offset += size
+        return lines
+
+    # set edges original lengths, and set minimal distance for too small inter talus edges
+    def _get_edges_lengths(self, edges):
+        edges_lengths_ori = []
+        for e in edges:
+            el = edge_length(e, self.points_talus.reshape(-1))
+            if el < self.edges_dist_min and num_talus(e[0], self.talus_lengths) != num_talus(e[1], self.talus_lengths):
+                loglsd.debug("min reached inter edges")
+                el = self.EDGES_D_MIN
+            edges_lengths_ori.append(el)
+        return np.array(edges_lengths_ori)
 
     def angles_crossprod(self):
         """ returns normalized crossproduct of all angles for "inside" points in all talus lines
@@ -94,35 +118,63 @@ class LSDisplacer:
                 prec = np.array((self.x_courant[2*i - 2], self.x_courant[2*i - 1]))
                 pt = np.array((self.x_courant[2*i], self.x_courant[2*i + 1]))
                 suiv = np.array((self.x_courant[2*i + 2], self.x_courant[2*i + 3]))
-                u = (pt - prec) / np.linalg.norm(pt - prec)
-                v = (suiv - pt) /  np.linalg.norm(suiv - prec)
+                u = (pt - prec) #/ np.linalg.norm(pt - prec)
+                u = u / np.linalg.norm(u)
+                v = (suiv - pt) #/ np.linalg.norm(suiv - pt)
+                v = v / np.linalg.norm(v)
                 cross_products.append(np.cross(u, v))
             offset += size
         return np.array(cross_products)
 
 
-    def partial_derivatives_cross_norm(self): #, points, talus_lengths):
+    # def partial_derivatives_cross_normo(self): #, points, talus_lengths):
+    #     offset = 0
+    #     cross_products = []
+    #     for size in self.talus_lengths:
+    #         m = np.zeros(self.nb_vars)
+    #         for i in range(offset + 1, offset + size - 1):
+    #             u = self.x_courant[2*i - 2:2*i + 4]
+    #             # df en Xi-1, Yi-1
+    #             dfx = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(2*u[0] - 2*u[2])/((-u[0] + u[2])**2 + (-u[1] + u[3])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[3] - u[5])
+    #             dfy = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(2*u[1] - 2*u[3])/((-u[0] + u[2])**2 + (-u[1] + u[3])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[2] + u[4])
+    #             m[2*i - 2] = dfx
+    #             m[2*i - 1] = dfy
+    #             # df en Xi, Yi
+    #             dfx = (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-0.5*((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*(2*u[2] - 2*u[4]) - 0.5*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)*(-2*u[0] + 2*u[2]))*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))/(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[1] + u[5])
+    #             dfy = (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-0.5*((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*(2*u[3] - 2*u[5]) - 0.5*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)*(-2*u[1] + 2*u[3]))*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))/(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[0] - u[4])
+    #             m[2*i] = dfx
+    #             m[2*i + 1] = dfy
+    #             # df en Xi+1, Yi+1
+    #             dfx = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(-2*u[2] + 2*u[4])/((-u[2] + u[4])**2 + (-u[3] + u[5])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[1] - u[3])
+    #             dfy = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(-2*u[3] + 2*u[5])/((-u[2] + u[4])**2 + (-u[3] + u[5])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[0] + u[2])
+    #             m[2*i + 2] = dfx
+    #             m[2*i + 3] = dfy
+    #             cross_products.append(m)
+    #         offset += size
+    #     return np.array(cross_products)
+
+    # derived with sympy
+    def partial_derivatives_cross_norm(self):
         offset = 0
         cross_products = []
         for size in self.talus_lengths:
             m = np.zeros(self.nb_vars)
             for i in range(offset + 1, offset + size - 1):
+                # xi, yi => x, y | xi-1, yi-1 => xpp, ypp | xi+1, yi+1 => xss, yss
                 u = self.x_courant[2*i - 2:2*i + 4]
-                # df en Xi-1, Yi-1
-                dfx = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(2*u[0] - 2*u[2])/((-u[0] + u[2])**2 + (-u[1] + u[3])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[3] - u[5])
-                dfy = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(2*u[1] - 2*u[3])/((-u[0] + u[2])**2 + (-u[1] + u[3])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[2] + u[4])
-                m[2*i - 2] = dfx
-                m[2*i - 1] = dfy
-                # df en Xi, Yi
-                dfx = (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-0.5*((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*(2*u[2] - 2*u[4]) - 0.5*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)*(-2*u[0] + 2*u[2]))*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))/(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[1] + u[5])
-                dfy = (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-0.5*((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*(2*u[3] - 2*u[5]) - 0.5*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)*(-2*u[1] + 2*u[3]))*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))/(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[0] - u[4])
-                m[2*i] = dfx
-                m[2*i + 1] = dfy
-                # df en Xi+1, Yi+1
-                dfx = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(-2*u[2] + 2*u[4])/((-u[2] + u[4])**2 + (-u[3] + u[5])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[1] - u[3])
-                dfy = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(-2*u[3] + 2*u[5])/((-u[2] + u[4])**2 + (-u[3] + u[5])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[0] + u[2])
-                m[2*i + 2] = dfx
-                m[2*i + 3] = dfy
+                xpp, ypp, x, y, xss, yss = u[0], u[1], u[2], u[3], u[4], u[5]
+                # df/dxi-1
+                m[2*i - 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xpp)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (y - yss)*((x - xpp)**2 + (y - ypp)**2))/((x - xpp)**2 + (y - ypp)**2)
+                # df/dyi-1
+                m[2*i - 1] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((-x + xss)*((x - xpp)**2 + (y - ypp)**2) - 1.0*(y - ypp)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xpp)**2 + (y - ypp)**2)
+                # df/dxi
+                m[2*i] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((-ypp + yss)*((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2) + ((x - xpp)*(y - yss) - (x - xss)*(y - ypp))*((x - xpp)*((x - xss)**2 + (y - yss)**2) + (x - xss)*((x - xpp)**2 + (y - ypp)**2)))/(((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))
+                # df/dyi
+                m[2*i + 1] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((xpp - xss)*((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2) + ((x - xpp)*(y - yss) - (x - xss)*(y - ypp))*((y - ypp)*((x - xss)**2 + (y - yss)**2) + (y - yss)*((x - xpp)**2 + (y - ypp)**2)))/(((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))
+                # df/dxi+1
+                m[2*i + 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (-y + ypp)*((x - xss)**2 + (y - yss)**2))/((x - xss)**2 + (y - yss)**2)
+                # df/dyi+1
+                m[2*i + 3] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((x - xpp)*((x - xss)**2 + (y - yss)**2) - 1.0*(y - yss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xss)**2 + (y - yss)**2)                
                 cross_products.append(m)
             offset += size
         return np.array(cross_products)
@@ -174,7 +226,24 @@ class LSDisplacer:
             wAngles = np.full(len(self.angles_ori), LSDisplacer.PAngles)
             weights.append(wAngles)
         if LSDisplacer.EDGES_CONST:
-            wEdges = [LSDisplacer.PEdges_int if num_talus(e[0], self.talus_lengths) == num_talus(e[1], self.talus_lengths) else LSDisplacer.PEdges_ext for e in self.edges]
+            wEdges = []
+            for i, e in enumerate(self.edges):
+                same_talus = num_talus(e[0], self.talus_lengths) == num_talus(e[1], self.talus_lengths)
+                non_consecutive_points = abs(e[0] - e[1]) != 1
+                if same_talus:
+                    if non_consecutive_points:
+                        loglsd.debug("**** non intra edge segment : limiting weight")
+                        wEdges.append(LSDisplacer.PEdges_int_non_seg)
+                    else:
+                        loglsd.debug("**** intra edge segment")
+                        wEdges.append(LSDisplacer.PEdges_int)
+                else:
+                    if edge_length(e, self.points_talus.reshape(-1)) >= self.edges_dist_max:
+                        loglsd.debug("**** max inter edges threshold reached : minimalizing weight for this edge")
+                        wEdges.append(LSDisplacer.Pedges_ext_far)
+                    else:
+                        loglsd.debug("**** intra edges segment")
+                        wEdges.append(LSDisplacer.PEdges_ext)
             wEdges = np.array(wEdges)
             weights.append(wEdges)
         if LSDisplacer.DIST_CONST and not LSDisplacer.KKT:
