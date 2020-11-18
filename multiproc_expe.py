@@ -125,10 +125,10 @@ if __name__ == '__main__':
 
     start = timer()
     with Pool(NB_CORES) as p:
-        res = p.starmap(func, enumerate(faces[12000:]))
+        res = p.starmap(func, enumerate(faces[10000:12000]))
     end = timer()
     print(50*"*", len(res))
-    format_res_and_save(res, './out_a_50_eext_50_eextfar_1_eint_5_eint_ns_2_mp.log')
+    format_res_and_save(res, './out_a_50_eext_50_eextfar_1_eint_5_eint_ns_2_mp_.log')
     print(f"done in {(end - start):.0f} s -- {count_processed.value} effectively processed")
     faces.close()
 

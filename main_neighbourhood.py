@@ -19,17 +19,17 @@ loglsd.setLevel(logging.WARNING) # par défaut on est en level INFO
 #loglsd.setLevel(logging.DEBUG)
 
 MAX_MAT_SIZE = 400 #400 #550 #400
-FACE = 514 #3032 #3938 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
+FACE = 9662 #3032 #3938 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
 DECIMATE_EDGES = False
 BUF = 15 # 6.5
 EDGES_D_MIN = 10.
 EDGES_D_MAX = 30.
 
 # on log si on est en warning level plus restrictif, on ne log pas les itérations pour chaque calcul par ex..
-if loglsd.level == logging.WARNING:
-    logfile = f'out_a_{LSDisplacer.PAngles}_eext_{LSDisplacer.PEdges_ext}_eextfar_{LSDisplacer.Pedges_ext_far}_eint_{LSDisplacer.PEdges_int}_eint_ns_{LSDisplacer.PEdges_int_non_seg}.log'
-    fh = logging.FileHandler(logfile)
-    loglsd.addHandler(fh)
+# if loglsd.level == logging.WARNING:
+#     logfile = f'out_a_{LSDisplacer.PAngles}_eext_{LSDisplacer.PEdges_ext}_eextfar_{LSDisplacer.Pedges_ext_far}_eint_{LSDisplacer.PEdges_int}_eint_ns_{LSDisplacer.PEdges_int_non_seg}.log'
+#     fh = logging.FileHandler(logfile)
+#     loglsd.addHandler(fh)
 faces = fiona.open(faces_file, 'r')
 ntree, ttree = get_STRtrees(network_file, talus_file)
 start = timer()
@@ -51,10 +51,10 @@ def get_shapes_partition(buff_union, shapes):
     return groups
 
 for i, f in enumerate(faces):
-    # if i != FACE:
-    #     continue
-    if i <= 3000:
+    if i != FACE:
         continue
+    # if i <= 3000:
+    #     continue
     # if i > 3000:
     #     break
     roads_shapes = get_roads_for_face(f, ntree, merge=False)
@@ -124,13 +124,3 @@ for i, f in enumerate(faces):
 end = timer()
 loglsd.warning(f"done in {(end - start):.0f} s")
 faces.close()
-
-
-# def get_voisinage(talus_shapes, idx, dist):
-#     t = talus_shapes[idx]
-#     voisinage = []
-#     for i in range(len(talus_shapes)):
-#         if i != idx:
-#             if t.buffer(dist).intersects(talus_shapes[i]):
-#                 voisinage.append(i)
-#     return voisinage

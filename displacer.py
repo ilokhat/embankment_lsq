@@ -4,6 +4,7 @@ import numpy as np
 
 import fiona
 from shapely.geometry import asLineString
+from shapely.ops import unary_union
 
 from triangulation import edge_length, num_talus
 from shapes_and_geoms_stuff import get_STRtrees, get_roads_for_face, get_talus_inside_face, get_points_talus
@@ -199,7 +200,7 @@ class LSDisplacer:
             offset += size
         return np.array(cross_products)
 
-    def dist_F(self, road, points): #tal_lengths
+    def dist_F_old(self, road, points): #tal_lengths
         min_dist = np.inf if LSDisplacer.DIST == 'MIN' else 0
         offset = 0
         for i, size in enumerate(self.talus_lengths):
@@ -210,6 +211,26 @@ class LSDisplacer:
                 min_dist += t.distance(road)
             offset += size
         if LSDisplacer.DIST != 'MIN':
+            min_dist /= len(self.talus_lengths)
+        dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
+        return dist
+    
+    #test small optim
+    def dist_F(self, road, points): #tal_lengths
+        min_dist = 0
+        offset = 0
+        if LSDisplacer.DIST == 'MIN':
+            tals = []
+            for i, size in enumerate(self.talus_lengths):
+                tals.append(LSDisplacer._line_from_points(points, offset, size))
+                offset += size
+            tals = unary_union(tals)
+            min_dist = road.distance(unary_union(tals))
+        else:
+            for i, size in enumerate(self.talus_lengths):
+                t = LSDisplacer._line_from_points(points, offset, size)
+                min_dist += t.distance(road)
+                offset += size
             min_dist /= len(self.talus_lengths)
         dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
         return dist
