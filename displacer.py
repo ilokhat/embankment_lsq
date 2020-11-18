@@ -6,6 +6,8 @@ import fiona
 from shapely.geometry import asLineString
 from shapely.ops import unary_union
 
+import pygeos
+
 from triangulation import edge_length, num_talus
 from shapes_and_geoms_stuff import get_STRtrees, get_roads_for_face, get_talus_inside_face, get_points_talus
 
@@ -82,6 +84,17 @@ class LSDisplacer:
     def _line_from_points(points, offset, size):
         tal = asLineString(points[offset:offset+size])
         return tal
+    
+    # pygeos
+    def _multiline_from_points(points, talus_lengths):
+        offset = 0
+        lines = []
+        coords = points.reshape(-1, 2)
+        for size in talus_lengths:
+            l = pygeos.creation.linestrings(coords[offset: offset+size])
+            lines.append(l)
+            offset += size
+        return pygeos.creation.multilinestrings(lines)
 
     def print_linestrings_wkts(self):
         points = self.x_courant.reshape(-1, 2)
@@ -235,31 +248,75 @@ class LSDisplacer:
         dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
         return dist
 
+    # original
+    # def dist_F_derivative(self, road):
+    #     coords = self.x_courant.reshape(-1, 2)
+    #     l = np.zeros(self.nb_vars)
+    #     for i in range(self.nb_vars):
+    #         hi = np.zeros(self.nb_vars)
+    #         hi[i] = self.H
+    #         hi = hi.reshape(-1, 2)
+    #         dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
+    #         l[i] = dist
+    #     return l
+
+    def dist_F_derivative_(self, road):
+        coords = self.x_courant
+        # diagonal matrix with H on diagonal
+        h = np.eye(self.nb_vars) * self.H
+        coords_plus_H = self.x_courant + h
+        coords_minus_H = self.x_courant - h
+        d_plus = np.zeros(self.nb_vars)
+        d_min = np.zeros(self.nb_vars)
+        for i in range(self.nb_vars):
+            d_plus[i] = self.dist_F(road, coords_plus_H[i].reshape(-1, 2))
+            d_min[i] = self.dist_F(road, coords_minus_H[i].reshape(-1, 2))
+        return (d_plus - d_min) / (2* self.H)
 
     def dist_F_derivative(self, road):
-        coords = self.x_courant.reshape(-1, 2)
-        l = np.zeros(self.nb_vars)
-        for i in range(self.nb_vars):
-            hi = np.zeros(self.nb_vars)
-            hi[i] = self.H
-            hi = hi.reshape(-1, 2)
-            dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
-            l[i] = dist
-        return l
-    
+        pyr = pygeos.io.from_wkt(road.wkt)
+        coords = self.x_courant
+        # diagonal matrix with H on diagonal
+        h = np.eye(self.nb_vars) * self.H
+        coords_plus_H = self.x_courant + h
+        coords_minus_H = self.x_courant - h
+        conc = np.concatenate((coords_plus_H, coords_minus_H))
+        ml = []
+        for c in conc:
+            m = LSDisplacer._multiline_from_points(c, self.talus_lengths)
+            ml.append(m)
+        #ml = pygeos.creation.geometrycollections(ml)
+
+        conc = pygeos.creation.multipoints(conc.reshape(2*self.nb_vars, -1, 2))
+        #print("---", coords_plus_H.shape, coords_minus_H.shape, conc.shape)
+        # d_plus = np.zeros(self.nb_vars)
+        # d_min = np.zeros(self.nb_vars)
+        ds = pygeos.distance(pyr, ml)
+        ds = np.where(ds > self.buffer, 0., self.buffer - ds)
+        #print(ds.shape)
+        ds = (ds[:self.nb_vars] - ds[self.nb_vars:]) / (2* self.H)
+        #print(ds)
+        #print( (ds[:self.nb_vars] - ds[:self.nb_vars]) / (2* self.H) )
+        # for i in range(self.nb_vars):
+        #     d_plus[i] = self.dist_F(road, coords_plus_H[i].reshape(-1, 2))
+        #     d_min[i] = self.dist_F(road, coords_minus_H[i].reshape(-1, 2))
+        #d = (d_plus - d_min) / (2* self.H)
+        return ds
+        #return (d_plus - d_min) / (2* self.H)
+
     # no good
-    def dist_F_derivative_optim(self, road, ir):
-        coords = self.x_courant.reshape(-1, 2)
-        l = np.zeros(self.nb_vars)
-        for i in range(self.nb_varsœ):
-            if num_talus(i//2, self.talus_lengths) not in self.roads_tals[ir]:
-                continue
-            hi = np.zeros(self.nb_vars)
-            hi[i] = self.H
-            hi = hi.reshape(-1, 2)
-            dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
-            l[i] = dist
-        return l
+    # def dist_F_derivative_optim(self, road, ir):
+    #     coords = self.x_courant.reshape(-1, 2)
+    #     l = np.zeros(self.nb_vars)
+    #     for i in range(self.nb_varsœ):
+    #         if num_talus(i//2, self.talus_lengths) not in self.roads_tals[ir]:
+    #             continue
+    #         hi = np.zeros(self.nb_vars)
+    #         hi[i] = self.H
+    #         hi = hi.reshape(-1, 2)
+    #         dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
+    #         l[i] = dist
+    #     return l
 
     # idx : edge index in pts [idx_p1, idx_p2]
     def edge_length_diff(self, idx):
