@@ -53,6 +53,9 @@ class LSDisplacer:
         self.e_lengths_ori = self._get_edges_lengths(self.edges) # np.array(self.e_lengths_ori)
         self.angles_ori = self.angles_crossprod()
         self.P = self.get_P()
+        self.meta = {"nb_iters": -1, "time_s": -1, "dx_reached": -1}
+        # test to optimize things
+        #self.roads_tals = self._idx_talux_per_road()
 
     def set_params(MAX_ITER=250, NORM_DX=0.3, H=2.0, DIST='MIN', KKT=False,
                    ID_CONST=True, ANGLES_CONST=True, EDGES_CONST=True, DIST_CONST=True,
@@ -96,6 +99,23 @@ class LSDisplacer:
             lines.append(t.wkt)
             offset += size
         return lines
+
+    # for each road, get the index of talus within distance of buffer
+    def _idx_talux_per_road(self):
+        points = self.x_courant.reshape(-1, 2)
+        offset = 0
+        idx = []
+        for r in self.roads_shapes:
+            r_t = []
+            for i, size in enumerate(self.talus_lengths):
+                t = LSDisplacer._line_from_points(points, offset, size)
+                if t.distance(r) < self.buffer:
+                    r_t.append(i)
+                offset += size
+            idx.append(r_t)
+        return idx
+
+
 
     # set edges original lengths, and set minimal distance for too small inter talus edges
     def _get_edges_lengths(self, edges):
@@ -198,7 +218,21 @@ class LSDisplacer:
     def dist_F_derivative(self, road):
         coords = self.x_courant.reshape(-1, 2)
         l = np.zeros(self.nb_vars)
-        for i in range(self.nb_vars):    
+        for i in range(self.nb_vars):
+            hi = np.zeros(self.nb_vars)
+            hi[i] = self.H
+            hi = hi.reshape(-1, 2)
+            dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
+            l[i] = dist
+        return l
+    
+    # no good
+    def dist_F_derivative_optim(self, road, ir):
+        coords = self.x_courant.reshape(-1, 2)
+        l = np.zeros(self.nb_vars)
+        for i in range(self.nb_varsœ):
+            if num_talus(i//2, self.talus_lengths) not in self.roads_tals[ir]:
+                continue
             hi = np.zeros(self.nb_vars)
             hi[i] = self.H
             hi = hi.reshape(-1, 2)
@@ -315,12 +349,15 @@ class LSDisplacer:
         # distance from roads
         if LSDisplacer.DIST_CONST:
             r_dists = []
+            # test optimiation
+            #for i, r in enumerate(self.roads_shapes):
             for r in self.roads_shapes:
+                #fk = self.dist_F_derivative_optim(r, i)
                 fk = self.dist_F_derivative(r)
                 r_dists.append(fk)
-            if a is None:
+            if a is None :
                 a = np.array(r_dists)
-            else:
+            elif len(r_dists) != 0:
                 a = np.vstack((a, r_dists))
         return a
 
@@ -366,6 +403,7 @@ class LSDisplacer:
         min_dx = np.inf
         norm_float = LSDisplacer.NORM_DX
         start_loop = timer()
+        i = 0
         for i in range(LSDisplacer.MAX_ITER):
             start = timer()
             dx = self.compute_dx()
@@ -382,7 +420,8 @@ class LSDisplacer:
                 break
             norm_float = LSDisplacer.NORM_DX if i < 100 else (LSDisplacer.NORM_DX + 2 * min_dx) / 3
         end_loop = timer()
-        loglsd.warning(f'nb iterations: {i + 1} -- min |dx| reached: {min_dx} -- NORM_DXf: {norm_float} -- {(end_loop - start_loop):.2f}s ')
+        self.meta['nb_iters'], self.meta['time_s'], self.meta['dx_reached'] = i, (end_loop - start_loop), min_dx
+        loglsd.warning(f'nb iterations: {i + 1} -- min |dx| reached: {min_dx} -- NORM_DXf: {norm_float} -- {(self.meta["time_s"]):.2f}s ')
         return self.x_courant
 
 if __name__ == '__main__':

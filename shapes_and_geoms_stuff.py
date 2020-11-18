@@ -41,10 +41,13 @@ def get_talus_inside_face(f, ttree, merge=True, displace=True):
         no_multipart = [displace_line_from_centroid_when_snapped_to_road(face, t) for t in no_multipart]
     return no_multipart
 
-def get_roads_for_face(f, ntree):
+def get_roads_for_face(f, ntree, merge=True):
     face = shape(f['geometry'])
     road_candidates = ntree.query(face)
     roads_shapes = [line for line in road_candidates if line.intersects(face) and not line.intersection(face).geom_type.endswith('Point')]
+    if not merge:
+        return roads_shapes
+    return merge_roads(roads_shapes)
     roads_merged = linemerge(roads_shapes)
     if roads_merged.geom_type == 'LineString':
         roads_shapes = [roads_merged]
@@ -64,6 +67,28 @@ def get_roads_for_face(f, ntree):
         if not at_least_one:
             rs.append(r)
     return rs
+
+def merge_roads(roads_shapes):
+    roads_merged = linemerge(roads_shapes)
+    if roads_merged.geom_type == 'LineString':
+        roads_shapes = [roads_merged]
+    else: 
+        roads_shapes = [r for r in roads_merged]
+    # ext_ints = [LineString(face.exterior)]
+    # for inte in face.interiors:
+    #     ext_ints.append(LineString(inte))
+    # rs = ext_ints[:]
+    # for r in roads_shapes:
+    #     #print(r)
+    #     at_least_one = False
+    #     for l in ext_ints:
+    #         if l.contains(r):
+    #             at_least_one = True
+    #             break
+    #     if not at_least_one:
+    #         rs.append(r)
+    return roads_shapes
+
 
 def displace_line_from_centroid_when_snapped_to_road(face, line):
     DISPLACEMENT_VECTOR_SIZE = 1. #1
