@@ -70,7 +70,7 @@ def format_res_and_save(res, file):
 
 
 count_processed = Value('i', 0)
-def func(i, f):
+def func(f):
     global count_processed
     fid = f['id']
     roads_shapes = get_roads_for_face(f, ntree, merge=False)
@@ -98,7 +98,9 @@ def func(i, f):
         edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
         nb_angles = len(points_talus) - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
         res_obj['nb_angles'], res_obj['nb_edges'] = nb_angles, len(edges)
-       
+        
+        # removed shapely objects from LSDisplacer constructor, wkts expected now
+        roads_shapes = [r.wkt for r in roads_shapes]
         displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
         p = displacer.get_P()
@@ -125,11 +127,12 @@ if __name__ == '__main__':
 
     start = timer()
     with Pool(NB_CORES) as p:
-        res = p.starmap(func, enumerate(faces))
-        #res = p.starmap(func, enumerate(faces[10000:12000]))
+        #res = p.starmap(func, enumerate(faces))
+        res = p.map(func, faces[10000:12000])
     end = timer()
     print(50*"*", len(res))
-    format_res_and_save(res, './out_a_50_eext_50_eextfar_1_eint_5_eint_ns_2_mp_lokoluss.log')
+    #format_res_and_save(res, './out_a_50_eext_50_eextfar_1_eint_5_eint_ns_2_mp_lokoluss_regress.log')
+    format_res_and_save(res, './klododss.log')
     print(f"done in {(end - start):.0f} s -- {count_processed.value} effectively processed")
     faces.close()
 

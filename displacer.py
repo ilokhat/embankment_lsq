@@ -2,14 +2,13 @@ from timeit import default_timer as timer
 import logging
 import numpy as np
 
-import fiona
 from shapely.geometry import asLineString
 from shapely.ops import unary_union
 
 import pygeos
 
 from triangulation import edge_length, num_talus
-from shapes_and_geoms_stuff import get_STRtrees, get_roads_for_face, get_talus_inside_face, get_points_talus
+
 
 #log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 log_format = '%(message)s'
@@ -41,10 +40,9 @@ class LSDisplacer:
     PAngles = 50 #50 #25
     PDistRoads = 1000
 
-
     def __init__(self, points_talus, roads_shapes, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
-        self.roads_shapes = roads_shapes
+        self.roads_shapes = [pygeos.io.from_wkt(r) for r in roads_shapes] #roads_shapes
         self.talus_lengths = talus_lengths
         self.edges = edges
         self.buffer = buffer
@@ -80,11 +78,13 @@ class LSDisplacer:
         LSDisplacer.PAngles = PAngles
         LSDisplacer.PDistRoads = PDistRoads
 
+
     # utility method to build a shapely line for points starting at offset and having size number of points
     def _line_from_points(points, offset, size):
         tal = asLineString(points[offset:offset+size])
         return tal
     
+
     # pygeos specific, return a multiline from all points of all talus
     def _multiline_from_points(points, talus_lengths):
         offset = 0
@@ -96,7 +96,7 @@ class LSDisplacer:
             offset += size
         return pygeos.creation.multilinestrings(lines)
     
-    # pygeos, returns an array of all talus lines
+    # pygeos, returns an array of linestrings from the points of all talus lines
     def _lines_from_points(points, talus_lengths):
         offset = 0
         lines = []
@@ -125,20 +125,21 @@ class LSDisplacer:
             offset += size
         return lines
 
+    # trying to optimize things, does not work
     # for each road, get the index of talus within distance of buffer
-    def _idx_talux_per_road(self):
-        points = self.x_courant.reshape(-1, 2)
-        offset = 0
-        idx = []
-        for r in self.roads_shapes:
-            r_t = []
-            for i, size in enumerate(self.talus_lengths):
-                t = LSDisplacer._line_from_points(points, offset, size)
-                if t.distance(r) < self.buffer:
-                    r_t.append(i)
-                offset += size
-            idx.append(r_t)
-        return idx
+    # def _idx_talux_per_road(self):
+    #     points = self.x_courant.reshape(-1, 2)
+    #     offset = 0
+    #     idx = []
+    #     for r in self.roads_shapes:
+    #         r_t = []
+    #         for i, size in enumerate(self.talus_lengths):
+    #             t = LSDisplacer._line_from_points(points, offset, size)
+    #             if t.distance(r) < self.buffer:
+    #                 r_t.append(i)
+    #             offset += size
+    #         idx.append(r_t)
+    #     return idx
 
 
 
@@ -225,20 +226,20 @@ class LSDisplacer:
         return np.array(cross_products)
     
     # original
-    def dist_F_original(self, road, points): # tal_lengths
-        min_dist = np.inf if LSDisplacer.DIST == 'MIN' else 0
-        offset = 0
-        for i, size in enumerate(self.talus_lengths):
-            t = LSDisplacer._line_from_points(points, offset, size)
-            if LSDisplacer.DIST == 'MIN':
-                min_dist = min(t.distance(road), min_dist)  
-            else:
-                min_dist += t.distance(road)
-            offset += size
-        if LSDisplacer.DIST != 'MIN':
-            min_dist /= len(self.talus_lengths)
-        dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
-        return dist
+    # def dist_F_original(self, road, points): # tal_lengths
+    #     min_dist = np.inf if LSDisplacer.DIST == 'MIN' else 0
+    #     offset = 0
+    #     for i, size in enumerate(self.talus_lengths):
+    #         t = LSDisplacer._line_from_points(points, offset, size)
+    #         if LSDisplacer.DIST == 'MIN':
+    #             min_dist = min(t.distance(road), min_dist)  
+    #         else:
+    #             min_dist += t.distance(road)
+    #         offset += size
+    #     if LSDisplacer.DIST != 'MIN':
+    #         min_dist /= len(self.talus_lengths)
+    #     dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
+    #     return dist
     
     # test small optim
     def dist_F(self, road, points): #tal_lengths
@@ -276,6 +277,7 @@ class LSDisplacer:
             dists = dists.mean(axis=1)
         dists = np.where(dists > self.buffer, 0., self.buffer - dists)
         return dists
+
     # original
     def dist_F_derivative__(self, road):
         coords = self.x_courant.reshape(-1, 2)
@@ -288,21 +290,21 @@ class LSDisplacer:
             l[i] = dist
         return l
 
-    def dist_F_derivative_(self, road):
-        coords = self.x_courant
-        # diagonal matrix with H on diagonal
-        h = np.eye(self.nb_vars) * self.H
-        coords_plus_H = self.x_courant + h
-        coords_minus_H = self.x_courant - h
-        d_plus = np.zeros(self.nb_vars)
-        d_min = np.zeros(self.nb_vars)
-        for i in range(self.nb_vars):
-            d_plus[i] = self.dist_F(road, coords_plus_H[i].reshape(-1, 2))
-            d_min[i] = self.dist_F(road, coords_minus_H[i].reshape(-1, 2))
-        return (d_plus - d_min) / (2* self.H)
+    # def dist_F_derivative_(self, road):
+    #     coords = self.x_courant
+    #     # diagonal matrix with H on diagonal
+    #     h = np.eye(self.nb_vars) * self.H
+    #     coords_plus_H = self.x_courant + h
+    #     coords_minus_H = self.x_courant - h
+    #     d_plus = np.zeros(self.nb_vars)
+    #     d_min = np.zeros(self.nb_vars)
+    #     for i in range(self.nb_vars):
+    #         d_plus[i] = self.dist_F(road, coords_plus_H[i].reshape(-1, 2))
+    #         d_min[i] = self.dist_F(road, coords_minus_H[i].reshape(-1, 2))
+    #     return (d_plus - d_min) / (2* self.H)
 
     def dist_F_derivative(self, road):
-        pyr = pygeos.io.from_wkt(road.wkt)
+        #pyr = pygeos.io.from_wkt(road.wkt)
         coords = self.x_courant
         # diagonal matrix with H on diagonal
         h = np.eye(self.nb_vars) * self.H
@@ -319,8 +321,8 @@ class LSDisplacer:
         # ds = (ds[:self.nb_vars] - ds[self.nb_vars:]) / (2* self.H)
 
         # seems a bit faster to have 2 np arrays instead of the same one splitted       
-        d_plus = self.dist_F_vectorized(pyr, coords_plus_H)
-        d_min = self.dist_F_vectorized(pyr, coords_minus_H)
+        d_plus = self.dist_F_vectorized(road, coords_plus_H)
+        d_min = self.dist_F_vectorized(road, coords_minus_H)
         ds = (d_plus - d_min) / (2* self.H)
         return ds
 
@@ -385,7 +387,7 @@ class LSDisplacer:
 
 
     # B = Y - S(Xcourant)
-    def get_B(self): #X_courant, points_talus, roads_shapes, talus_lengths, edges, edges_lengths, angles_ori): #, ID_CONST=True, ANGLES_CONST=True, EDGES_CONST=True, DIST_CONST=True):
+    def get_B(self): 
         b = None
         # inertia
         if LSDisplacer.ID_CONST:
@@ -412,8 +414,9 @@ class LSDisplacer:
         if LSDisplacer.DIST_CONST:
             r_dists = []
             for r in self.roads_shapes:
-                fk = - self.dist_F(r, self.x_courant.reshape(-1, 2))
-                r_dists.append(fk)
+                #fk = - self.dist_F(r, self.x_courant.reshape(-1, 2))
+                fk = - self.dist_F_vectorized(r, self.x_courant[np.newaxis,:] )
+                r_dists.append(fk.item())
             if b is None:
                 b = np.array(r_dists)
             else:
@@ -523,7 +526,9 @@ class LSDisplacer:
         return self.x_courant
 
 if __name__ == '__main__':
+    import fiona
     from triangulation import get_edges_from_triangulation
+    from shapes_and_geoms_stuff import get_STRtrees, get_roads_for_face, get_talus_inside_face, get_points_talus
 
     faces_file = "/home/imran/projets/talus/Donnees_talus/Talus/faces_reseau.shp"
     network_file = "/home/imran/projets/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"

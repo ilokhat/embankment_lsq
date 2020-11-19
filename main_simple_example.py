@@ -68,7 +68,7 @@ edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIM
 LSDisplacer.set_params(MAX_ITER=250, PAngles=50, PEdges_ext=2, PEdges_int=10, DIST='MIN')
 #loglsd.setLevel(logging.WARNING)
 
-displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF)
+displacer = LSDisplacer(points_talus, roads, talus_lengths, edges, buffer=BUF)
 P = displacer.get_P()
 print("P matrix size", P.shape)
 displacer.square()
