@@ -82,22 +82,12 @@ class LSDisplacer:
 
 
     # utility method to build a shapely line for points starting at offset and having size number of points
-    def _line_from_points(points, offset, size):
-        #tal = asLineString(points[offset:offset+size])
-        tal = pygeos.creation.linestrings(points[offset:offset+size])
-        return tal  
+    # def _line_from_points(points, offset, size):
+    #     #tal = asLineString(points[offset:offset+size])
+    #     tal = pygeos.creation.linestrings(points[offset:offset+size])
+    #     return tal  
 
-    # pygeos specific, return a multiline from all points of all talus
-    def _multiline_from_points(points, talus_lengths):
-        offset = 0
-        lines = []
-        coords = points.reshape(-1, 2)
-        for size in talus_lengths:
-            l = pygeos.creation.linestrings(coords[offset: offset+size])
-            lines.append(l)
-            offset += size
-        return pygeos.creation.multilinestrings(lines)
-    
+
     # pygeos, returns an array of linestrings from the points of all talus lines
     def _lines_from_points(points, talus_lengths):
         offset = 0
@@ -109,6 +99,12 @@ class LSDisplacer:
             offset += size
         return np.array(lines)
 
+    # pygeos specific, return a multiline from all points of all talus
+    def _multiline_from_points(points, talus_lengths):
+        lines = LSDisplacer._lines_from_points(points, talus_lengths) 
+        return pygeos.creation.multilinestrings(lines)
+    
+
     def print_linestrings_wkts(self):
         lines = self.get_linestrings_wkts()
         for l in lines:
@@ -119,23 +115,6 @@ class LSDisplacer:
         lines = LSDisplacer._lines_from_points(points, self.talus_lengths)
         lines = pygeos.to_wkt(lines, rounding_precision=-1)
         return lines
-
-    # trying to optimize things, does not work
-    # for each road, get the index of talus within distance of buffer
-    # def _idx_talux_per_road(self):
-    #     points = self.x_courant.reshape(-1, 2)
-    #     offset = 0
-    #     idx = []
-    #     for r in self.roads_shapes:
-    #         r_t = []
-    #         for i, size in enumerate(self.talus_lengths):
-    #             t = LSDisplacer._line_from_points(points, offset, size)
-    #             if t.distance(r) < self.buffer:
-    #                 r_t.append(i)
-    #             offset += size
-    #         idx.append(r_t)
-    #     return idx
-
 
 
     # set edges original lengths, and set minimal distance for too small inter talus edges
@@ -219,43 +198,7 @@ class LSDisplacer:
                 cross_products.append(m)
             offset += size
         return np.array(cross_products)
-    
-    # original
-    # def dist_F_original(self, road, points): # tal_lengths
-    #     min_dist = np.inf if LSDisplacer.DIST == 'MIN' else 0
-    #     offset = 0
-    #     for i, size in enumerate(self.talus_lengths):
-    #         t = LSDisplacer._line_from_points(points, offset, size)
-    #         if LSDisplacer.DIST == 'MIN':
-    #             min_dist = min(t.distance(road), min_dist)  
-    #         else:
-    #             min_dist += t.distance(road)
-    #         offset += size
-    #     if LSDisplacer.DIST != 'MIN':
-    #         min_dist /= len(self.talus_lengths)
-    #     dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
-    #     return dist
-    
-    # test small optim, relies on shapely distance
-    # def dist_F(self, road, points): #tal_lengths
-    #     min_dist = 0
-    #     offset = 0
-    #     if LSDisplacer.DIST == 'MIN':
-    #         tals = []
-    #         for i, size in enumerate(self.talus_lengths):
-    #             tals.append(LSDisplacer._line_from_points(points, offset, size))
-    #             offset += size
-    #         tals = unary_union(tals)
-    #         min_dist = road.distance(unary_union(tals))
-    #     else:
-    #         for i, size in enumerate(self.talus_lengths):
-    #             t = LSDisplacer._line_from_points(points, offset, size)
-    #             min_dist += t.distance(road)
-    #             offset += size
-    #         min_dist /= len(self.talus_lengths)
-    #     dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
-    #     return dist
-    
+      
     # each line of points_array contains points for multiple lines, offset and size is deduced from self.talus_lengths
     # returns an array of distances from road, either min or max
     def dist_F_vectorized(self, road, points_array):
@@ -273,67 +216,18 @@ class LSDisplacer:
         dists = np.where(dists > self.buffer, 0., self.buffer - dists)
         return dists
 
-    # original
-    def dist_F_derivative__(self, road):
-        coords = self.x_courant.reshape(-1, 2)
-        l = np.zeros(self.nb_vars)
-        for i in range(self.nb_vars):
-            hi = np.zeros(self.nb_vars)
-            hi[i] = self.H
-            hi = hi.reshape(-1, 2)
-            dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
-            l[i] = dist
-        return l
-
-    # def dist_F_derivative_(self, road):
-    #     coords = self.x_courant
-    #     # diagonal matrix with H on diagonal
-    #     h = np.eye(self.nb_vars) * self.H
-    #     coords_plus_H = self.x_courant + h
-    #     coords_minus_H = self.x_courant - h
-    #     d_plus = np.zeros(self.nb_vars)
-    #     d_min = np.zeros(self.nb_vars)
-    #     for i in range(self.nb_vars):
-    #         d_plus[i] = self.dist_F(road, coords_plus_H[i].reshape(-1, 2))
-    #         d_min[i] = self.dist_F(road, coords_minus_H[i].reshape(-1, 2))
-    #     return (d_plus - d_min) / (2* self.H)
 
     def dist_F_derivative(self, road):
-        #pyr = pygeos.io.from_wkt(road.wkt)
         coords = self.x_courant
         # diagonal matrix with H on diagonal
         h = np.eye(self.nb_vars) * self.H
         coords_plus_H = self.x_courant + h
         coords_minus_H = self.x_courant - h
-        # conc = np.concatenate((coords_plus_H, coords_minus_H))
-        # ml = []
-        # for c in conc:
-        #     m = LSDisplacer._multiline_from_points(c, self.talus_lengths)
-        #     ml.append(m)
-        # ml = np.array(ml)
-        # ds = pygeos.distance(pyr, ml)
-        # ds = np.where(ds > self.buffer, 0., self.buffer - ds)
-        # ds = (ds[:self.nb_vars] - ds[self.nb_vars:]) / (2* self.H)
-
-        # seems a bit faster to have 2 np arrays instead of the same one splitted       
+        # seems a bit faster to have 2 np arrays instead of the same one splitted 
         d_plus = self.dist_F_vectorized(road, coords_plus_H)
         d_min = self.dist_F_vectorized(road, coords_minus_H)
         ds = (d_plus - d_min) / (2* self.H)
         return ds
-
-    # no good
-    # def dist_F_derivative_optim(self, road, ir):
-    #     coords = self.x_courant.reshape(-1, 2)
-    #     l = np.zeros(self.nb_vars)
-    #     for i in range(self.nb_varsœ):
-    #         if num_talus(i//2, self.talus_lengths) not in self.roads_tals[ir]:
-    #             continue
-    #         hi = np.zeros(self.nb_vars)
-    #         hi[i] = self.H
-    #         hi = hi.reshape(-1, 2)
-    #         dist = (self.dist_F(road, coords + hi) - self.dist_F(road, coords - hi)) / (2. * self.H)
-    #         l[i] = dist
-    #     return l
 
     # idx : edge index in pts [idx_p1, idx_p2]
     def edge_length_diff(self, idx):
