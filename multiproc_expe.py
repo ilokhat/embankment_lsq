@@ -55,7 +55,7 @@ def format_res_and_save(res, file):
     logFile = open(file, 'w')
     for r in res:
         for k, v in r.items():
-            print(k, v)
+            #print(k, v)
             l = '------------------------------------------------------------------------\n'
             l += f'Face: {k}\n'
             for part in v:
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     start = timer()
     with Pool(NB_CORES) as p:
         #res = p.starmap(func, enumerate(faces))
-        res = p.map(func, faces[10000:12000])
+        res = p.map(func, faces[2220:2221])
     end = timer()
     print(50*"*", len(res))
     #format_res_and_save(res, './out_a_50_eext_50_eextfar_1_eint_5_eint_ns_2_mp_lokoluss_regress.log')

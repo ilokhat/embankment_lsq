@@ -40,9 +40,11 @@ class LSDisplacer:
     PAngles = 50 #50 #25
     PDistRoads = 1000
 
-    def __init__(self, points_talus, roads_shapes, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
+    def __init__(self, points_talus, roads_wkts, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
-        self.roads_shapes = [pygeos.io.from_wkt(r) for r in roads_shapes] #roads_shapes
+        #self.roads_shapes = [pygeos.io.from_wkt(r) for r in roads_wkts] #roads_shapes
+        #self.roads_shapes =  pygeos.from_wkt(pygeos.to_wkt(pygeos.from_wkt(roads_wkts), rounding_precision=-1, output_dimension=2)) # remove z
+        self.roads_shapes =  pygeos.from_wkt(roads_wkts)
         self.talus_lengths = talus_lengths
         self.edges = edges
         self.buffer = buffer
@@ -81,9 +83,9 @@ class LSDisplacer:
 
     # utility method to build a shapely line for points starting at offset and having size number of points
     def _line_from_points(points, offset, size):
-        tal = asLineString(points[offset:offset+size])
-        return tal
-    
+        #tal = asLineString(points[offset:offset+size])
+        tal = pygeos.creation.linestrings(points[offset:offset+size])
+        return tal  
 
     # pygeos specific, return a multiline from all points of all talus
     def _multiline_from_points(points, talus_lengths):
@@ -108,21 +110,14 @@ class LSDisplacer:
         return np.array(lines)
 
     def print_linestrings_wkts(self):
-        points = self.x_courant.reshape(-1, 2)
-        offset = 0
-        for size in self.talus_lengths:
-            t = LSDisplacer._line_from_points(points, offset, size)
-            print(t)
-            offset += size
+        lines = self.get_linestrings_wkts()
+        for l in lines:
+            print(l)
     
     def get_linestrings_wkts(self):
         points = self.x_courant.reshape(-1, 2)
-        offset = 0
-        lines = []
-        for size in self.talus_lengths:
-            t = LSDisplacer._line_from_points(points, offset, size)
-            lines.append(t.wkt)
-            offset += size
+        lines = LSDisplacer._lines_from_points(points, self.talus_lengths)
+        lines = pygeos.to_wkt(lines, rounding_precision=-1)
         return lines
 
     # trying to optimize things, does not work
@@ -241,25 +236,25 @@ class LSDisplacer:
     #     dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
     #     return dist
     
-    # test small optim
-    def dist_F(self, road, points): #tal_lengths
-        min_dist = 0
-        offset = 0
-        if LSDisplacer.DIST == 'MIN':
-            tals = []
-            for i, size in enumerate(self.talus_lengths):
-                tals.append(LSDisplacer._line_from_points(points, offset, size))
-                offset += size
-            tals = unary_union(tals)
-            min_dist = road.distance(unary_union(tals))
-        else:
-            for i, size in enumerate(self.talus_lengths):
-                t = LSDisplacer._line_from_points(points, offset, size)
-                min_dist += t.distance(road)
-                offset += size
-            min_dist /= len(self.talus_lengths)
-        dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
-        return dist
+    # test small optim, relies on shapely distance
+    # def dist_F(self, road, points): #tal_lengths
+    #     min_dist = 0
+    #     offset = 0
+    #     if LSDisplacer.DIST == 'MIN':
+    #         tals = []
+    #         for i, size in enumerate(self.talus_lengths):
+    #             tals.append(LSDisplacer._line_from_points(points, offset, size))
+    #             offset += size
+    #         tals = unary_union(tals)
+    #         min_dist = road.distance(unary_union(tals))
+    #     else:
+    #         for i, size in enumerate(self.talus_lengths):
+    #             t = LSDisplacer._line_from_points(points, offset, size)
+    #             min_dist += t.distance(road)
+    #             offset += size
+    #         min_dist /= len(self.talus_lengths)
+    #     dist = 0. if min_dist >= self.buffer else (self.buffer - min_dist) #**2
+    #     return dist
     
     # each line of points_array contains points for multiple lines, offset and size is deduced from self.talus_lengths
     # returns an array of distances from road, either min or max
