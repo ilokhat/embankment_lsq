@@ -9,10 +9,10 @@ from shapely.ops import linemerge
 def get_points_talus(shapely_lines):
     """ takes a list of shapely linestrings and returns an np array of all coordinates
     from every line
-    [[x0, y0], [x1, y1], ... [xn, yn]]
+    [x0, y0, x1, y1, ... xn, yn]
     """
     tals = [np.array(t.coords)[:,:2] for t in shapely_lines] # remove z
-    tals = np.concatenate(tals, axis=0)
+    tals = np.concatenate(tals, axis=0).reshape(-1)
     return tals
 
 #####

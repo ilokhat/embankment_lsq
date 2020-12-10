@@ -2,12 +2,13 @@ import numpy as np
 import triangle as tr
 
 
-# returns a list of segments (pt_ini, pt_fin) from a list of coordinates and size of each linestring
+# returns a list of internal segments (pt_ini, pt_fin) from a list of coordinates and size of each linestring
+# removing the segments between each linestrings
 def get_segments_idx(coords, tal_lengths):
     to_remove = []
     acc = 0
     for e in tal_lengths[:-1]:
-        to_remove.append((e + acc -1, e + acc))
+        to_remove.append((e + acc - 1, e + acc))
         acc += e
     segs = [(i, i + 1) for i in range(len(coords)-1) if (i, i + 1) not in to_remove]
     return segs
@@ -15,7 +16,7 @@ def get_segments_idx(coords, tal_lengths):
 # length of edge referenced by index idx (pt_ini, pt_fin) in pts
 def edge_length(idx, pts):
     xa, ya, xb, yb = pts[idx[0]*2], pts[idx[0]*2 + 1], pts[idx[1]*2], pts[idx[1]*2 + 1]
-    return ((xa - xb)**2 + (ya- yb)**2)**0.5
+    return ((xa - xb)**2 + (ya - yb)**2)**0.5
 
 # num of the linestring for point at index idx 
 def num_talus(idx, talus_lengths):
@@ -59,17 +60,18 @@ def decimate_edges(edges, vertices, talus_lengths, EPSILON = 0.11):
     #                         remainings.remove(ek)
     return np.array(list(remainings))
 
-def get_edges_from_triangulation(points_talus, talus_lengths, decimate=True):
+def get_edges_from_triangulation(points_talus, talus_lengths, decimate=False):
     """ returns a list of edges (pt_ini, pt_fin) from the triangulation of points_talus
     """
-    segs = get_segments_idx(points_talus, talus_lengths)
+    vertices = points_talus.reshape(-1, 2)
+    segs = get_segments_idx(vertices, talus_lengths)
     dataset = dict()
-    dataset["vertices"] = points_talus
+    dataset["vertices"] = vertices
     dataset["segments"] = segs
     t = tr.triangulate(dataset, 'e')
     edges = t['edges']
     if decimate:
-        edges = decimate_edges(edges, points_talus, talus_lengths)
+        edges = decimate_edges(edges, vertices, talus_lengths)
     return edges
 
 
@@ -87,6 +89,6 @@ if __name__ == "__main__":
     points_talus = get_points_talus(talus_shapes)
     edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)             
     for e in edges:
-        seg = f'LINESTRING({points_talus[e[0]][0]} {points_talus[e[0]][1]}, {points_talus[e[1]][0]} {points_talus[e[1]][1]})'
+        seg = f'LINESTRING({points_talus[e[0]*2]} {points_talus[e[0]*2 + 1]}, {points_talus[e[1]*2]} {points_talus[e[1]*2 + 1]})'
         print(seg)
     print(points_talus.shape, edges.shape)

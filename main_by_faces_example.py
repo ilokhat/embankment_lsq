@@ -15,7 +15,7 @@ LSDisplacer.set_params(MAX_ITER=250, DIST='MIN', ANGLES_CONST=True, NORM_DX=0.3,
 loglsd.setLevel(logging.DEBUG)
 
 MAX_MAT_SIZE = 1700 #400 #550 #400
-FACE = 2220 #738 #3032 #423 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
+FACE = 861 #2220 #738 #3032 #423 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
 DECIMATE_EDGES = False
 BUF = 15 # 6.5
 EDGES_D_MIN = 10.
@@ -56,11 +56,8 @@ for i, f in enumerate(faces):
     
     points_talus = get_points_talus(talus_shapes)
     edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
-    # for e in edges:
-    #     seg = f'LINESTRING({points_talus[e[0]][0]} {points_talus[e[0]][1]}, {points_talus[e[1]][0]} {points_talus[e[1]][1]})'
-    #     print(seg)
 
-    nb_angles = len(points_talus) - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
+    nb_angles = len(points_talus) / 2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
     msg = f'nb angles: {nb_angles} | nb edges selected: {len(edges)}'
     loglsd.warning(msg)
     

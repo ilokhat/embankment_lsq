@@ -39,6 +39,7 @@ class LSDisplacer:
     Pedges_ext_far = 0
     PAngles = 50 #50 #25
     PDistRoads = 1000
+    FLOATING_NORM = True
 
     def __init__(self, points_talus, roads_wkts, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
@@ -50,10 +51,11 @@ class LSDisplacer:
         self.buffer = buffer
         self.edges_dist_min = edges_dist_min
         self.edges_dist_max = edges_dist_max
-        self.x_courant = self.points_talus.reshape(-1).copy()
+        self.x_courant = self.points_talus.copy() #reshape(-1).copy()
         # 2 * nb points talus
         self.nb_vars = len(self.x_courant)
         self.e_lengths_ori = self._get_edges_lengths(self.edges) # np.array(self.e_lengths_ori)
+        #print(self.e_lengths_ori)
         self.angles_ori = self.angles_crossprod()
         self.P = self.get_P()
         self.meta = {"nb_iters": -1, "time_s": -1, "dx_reached": -1}
@@ -121,7 +123,7 @@ class LSDisplacer:
     def _get_edges_lengths(self, edges):
         edges_lengths_ori = []
         for e in edges:
-            el = edge_length(e, self.points_talus.reshape(-1))
+            el = edge_length(e, self.points_talus) #.reshape(-1))
             if el < self.edges_dist_min and num_talus(e[0], self.talus_lengths) != num_talus(e[1], self.talus_lengths):
                 loglsd.debug("min reached inter edges")
                 el = self.edges_dist_min
@@ -174,7 +176,7 @@ class LSDisplacer:
     #     return np.array(cross_products)
 
     # derived with sympy
-    def partial_derivatives_cross_norm(self):
+    def cross_norm_diff(self):
         offset = 0
         cross_products = []
         for size in self.talus_lengths:
@@ -200,7 +202,7 @@ class LSDisplacer:
         return np.array(cross_products)
       
     # each line of points_array contains points for multiple lines, offset and size is deduced from self.talus_lengths
-    # returns an array of distances from road, either min or max
+    # returns an array of distances from road, either min or mean
     def dist_F_vectorized(self, road, points_array):
         ml = []
         for c in points_array:
@@ -217,7 +219,7 @@ class LSDisplacer:
         return dists
 
 
-    def dist_F_derivative(self, road):
+    def dist_F_diff(self, road):
         coords = self.x_courant
         # diagonal matrix with H on diagonal
         h = np.eye(self.nb_vars) * self.H
@@ -243,7 +245,8 @@ class LSDisplacer:
     def get_P(self):
         weights = []
         if LSDisplacer.ID_CONST:
-            wfix = np.full(2*len(self.points_talus), LSDisplacer.PFix)
+            #wfix = np.full(2*len(self.points_talus), LSDisplacer.PFix)
+            wfix = np.full(self.nb_vars, LSDisplacer.PFix)
             weights.append(wfix)
         if LSDisplacer.ANGLES_CONST:
             wAngles = np.full(len(self.angles_ori), LSDisplacer.PAngles)
@@ -261,11 +264,11 @@ class LSDisplacer:
                         loglsd.debug("**** intra edge segment")
                         wEdges.append(LSDisplacer.PEdges_int)
                 else:
-                    if edge_length(e, self.points_talus.reshape(-1)) >= self.edges_dist_max:
+                    if edge_length(e, self.points_talus) >= self.edges_dist_max:
                         loglsd.debug("**** max inter edges threshold reached : minimalizing weight for this edge")
                         wEdges.append(LSDisplacer.Pedges_ext_far)
                     else:
-                        loglsd.debug("**** intra edges segment")
+                        loglsd.debug("**** inter edges segment")
                         wEdges.append(LSDisplacer.PEdges_ext)
             wEdges = np.array(wEdges)
             weights.append(wEdges)
@@ -280,7 +283,7 @@ class LSDisplacer:
         b = None
         # inertia
         if LSDisplacer.ID_CONST:
-            b = self.points_talus.reshape(-1) - self.x_courant
+            b = self.points_talus - self.x_courant
         # cross prod angles
         if LSDisplacer.ANGLES_CONST:
             angles_cross = self.angles_crossprod()
@@ -320,7 +323,7 @@ class LSDisplacer:
             a = np.identity(self.nb_vars)
         # cross prod angles
         if LSDisplacer.ANGLES_CONST:
-            angles = self.partial_derivatives_cross_norm()
+            angles = self.cross_norm_diff()
             if len(angles) != 0:
                 if a is None:
                     a = angles
@@ -339,11 +342,8 @@ class LSDisplacer:
         # distance from roads
         if LSDisplacer.DIST_CONST:
             r_dists = []
-            # test optimiation
-            #for i, r in enumerate(self.roads_shapes):
             for r in self.roads_shapes:
-                #fk = self.dist_F_derivative_optim(r, i)
-                fk = self.dist_F_derivative(r)
+                fk = self.dist_F_diff(r)
                 r_dists.append(fk)
             if a is None :
                 a = np.array(r_dists)
@@ -398,17 +398,19 @@ class LSDisplacer:
             start = timer()
             dx = self.compute_dx()
             if LSDisplacer.KKT:
-                self.x_courant += alpha * dx[0][:len(self.points_talus)*2]
+                self.x_courant += alpha * dx[0][:self.nb_vars]
             else :
                 self.x_courant += alpha * dx[0] #dx
             end = timer()
             normdx = np.linalg.norm(dx[0], ord=np.inf)
-            alpha = (LSDisplacer.H * ro) / (2**0.5 * normdx) if normdx != 0 else 0.1
+            alpha =  (LSDisplacer.H * ro) / (2**0.5 * normdx) if normdx != 0 else 0.1
             min_dx = normdx if normdx < min_dx else min_dx
             loglsd.info(f'iter {i}/ |dx| : {normdx:.4f} -- NORM_DXf: {norm_float} -- mean(dx): {np.mean(dx[0]):.2f} -- {(end - start):.2f}s per step')
             if normdx < norm_float : #NORM_DX :
                 break
-            norm_float = LSDisplacer.NORM_DX if i < 100 else (LSDisplacer.NORM_DX + 2 * min_dx) / 3
+            if LSDisplacer.FLOATING_NORM:
+                #print('reshaping norm')
+                norm_float = LSDisplacer.NORM_DX if i < 100 else (LSDisplacer.NORM_DX + 2 * min_dx) / 3
         end_loop = timer()
         self.meta['nb_iters'], self.meta['time_s'], self.meta['dx_reached'] = i, (end_loop - start_loop), min_dx
         loglsd.warning(f'nb iterations: {i + 1} -- min |dx| reached: {min_dx} -- NORM_DXf: {norm_float} -- {(self.meta["time_s"]):.2f}s ')
@@ -447,7 +449,7 @@ if __name__ == '__main__':
         
         points_talus = get_points_talus(talus_shapes)
         edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
-        nb_angles = len(points_talus) - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
+        nb_angles = len(points_talus)/2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
         print(f'nb angles: {nb_angles} | nb edges selected: {len(edges)}')
         
         displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, 15)

@@ -16,17 +16,20 @@ network_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/reseaux_fusionnes.s
 talus_file = "/mnt/data/mac/work/talus/Donnees_talus/o_ligne_n0.shp"
 
 LSDisplacer.set_params(MAX_ITER=250, DIST='MIN', ANGLES_CONST=True, NORM_DX=0.3,
-                       PAngles=50, PEdges_ext=50, Pedges_ext_far=1, PEdges_int=5, PEdges_int_non_seg=2, PDistRoads=1000)
+                       PFix=8.0,
+                       PAngles=8, PEdges_ext=15, Pedges_ext_far=0.5, PEdges_int=1, PEdges_int_non_seg=1, PDistRoads=200)
+                       #PAngles=8, PEdges_ext=15, Pedges_ext_far=0.5, PEdges_int=1, PEdges_int_non_seg=1, PDistRoads=200)
+                       #PAngles=50, PEdges_ext=50, Pedges_ext_far=1, PEdges_int=5, PEdges_int_non_seg=2, PDistRoads=1000)
 loglsd.setLevel(logging.WARNING) # par défaut on est en level INFO
 #loglsd.setLevel(logging.DEBUG)
 
-MAX_MAT_SIZE = 400 #400 #550 #400
-FACE = 514 #3032 #3938 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
+MAX_MAT_SIZE = 1400 #400 #550 #400
+FACE = 9109 #4125 #3247 #6073 #3032 #3938 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
 DECIMATE_EDGES = False
-BUF = 15 # 6.5
+BUF = 15 +1.5# 6.5
 EDGES_D_MIN = 10.
 EDGES_D_MAX = 30.
-
+LSDisplacer.FLOATING_NORM = True
 NB_CORES = cpu_count() # 4
 
 # on log si on est en warning level plus restrictif, on ne log pas les itérations pour chaque calcul par ex..
@@ -52,29 +55,26 @@ def get_shapes_partition(buff_union, shapes):
     return groups
 
 def format_res_and_save(res, file):
-    logFile = open(file, 'w')
-    for r in res:
-        for k, v in r.items():
-            #print(k, v)
-            l = '------------------------------------------------------------------------\n'
-            l += f'Face: {k}\n'
-            for part in v:
-                l += f'idx: {part["idx"]} -- nb_tals: {part["nb_tals"]} -- nb_roads: {part["nb_roads"]} -- nb_points: {part["nb_pts"]}\n'
-                l += f'nb_angles: {part["nb_angles"]} -- nb_edges: {part["nb_edges"]} -- P size: {part["p_shape"]}\n'
-                l += f'nb_iters: {part["nb_iters"]} -- dx_reached: {part["dx_reached"]} -- time(s): {part["time_s"]}\n'
-                l += part['lines']
-                l += "\n"
-            logFile.write(l)
-            print(l)
-    logFile.close()
-
+    # with open(file, 'w') as logFile: 
+        for r in res:
+            for k, v in r.items():
+                l = '------------------------------------------------------------------------\n'
+                l += f'Face: {k}\n'
+                for part in v:
+                    # l += f'idx: {part["idx"]} -- nb_tals: {part["nb_tals"]} -- nb_roads: {part["nb_roads"]} -- nb_points: {part["nb_pts"]}\n'
+                    # l += f'nb_angles: {part["nb_angles"]} -- nb_edges: {part["nb_edges"]} -- P size: {part["p_shape"]}\n'
+                    # l += f'nb_iters: {part["nb_iters"]} -- dx_reached: {part["dx_reached"]} -- time(s): {part["time_s"]}\n'
+                    l += part['lines']
+                    l += "\n"
+                #logFile.write(l)
+                print(l)
 
 count_processed = Value('i', 0)
 def func(f):
     global count_processed
     fid = f['id']
     roads_shapes = get_roads_for_face(f, ntree, merge=False)
-    talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=True)  
+    talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=False)  
     u = unary_union([t.buffer(EDGES_D_MAX) for t in talus_shapes])
     tals_groups = get_shapes_partition(u, talus_shapes)
     roads_groups = get_shapes_partition(u, roads_shapes)
@@ -96,12 +96,15 @@ def func(f):
         
         points_talus = get_points_talus(talus_shapes)
         edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
-        nb_angles = len(points_talus) - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
+        for i, e in enumerate(edges):
+            seg = f'LINESTRING({points_talus[e[0]*2]} {points_talus[e[0]*2 + 1]}, {points_talus[e[1]*2]} {points_talus[e[1]*2 + 1]})'
+            print(seg)
+        nb_angles = len(points_talus)/2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
         res_obj['nb_angles'], res_obj['nb_edges'] = nb_angles, len(edges)
         
         # removed shapely objects from LSDisplacer constructor, wkts expected now
-        roads_shapes = [r.wkt for r in roads_shapes]
-        displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
+        roads_wkts = [r.wkt for r in roads_shapes]
+        displacer = LSDisplacer(points_talus, roads_wkts, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
         p = displacer.get_P()
         res_obj['p_shape'] = p.shape[0]
@@ -116,7 +119,7 @@ def func(f):
         res_objs[fid].append(res_obj)
         with count_processed.get_lock():
             count_processed.value += 1
-            print(f'{count_processed.value} done so far, [{fid}]')
+            print(f'{count_processed.value} done so far, [{fid}] ({res_obj["time_s"]})')
     return res_objs
 
 NB_CORES = cpu_count()
@@ -127,12 +130,15 @@ if __name__ == '__main__':
 
     start = timer()
     with Pool(NB_CORES) as p:
-        #res = p.starmap(func, enumerate(faces))
-        res = p.map(func, faces[2220:2221])
+        #res = p.starmap(func, faces)
+        #res = p.map(func, faces)
+        res = p.map(func, faces[FACE:FACE + 1])
     end = timer()
     print(50*"*", len(res))
     #format_res_and_save(res, './out_a_50_eext_50_eextfar_1_eint_5_eint_ns_2_mp_lokoluss_regress.log')
-    format_res_and_save(res, './klododss.log')
+    params = f'a_{LSDisplacer.PAngles}_eext_{LSDisplacer.PEdges_ext}_eextf_{LSDisplacer.Pedges_ext_far}_eei_{LSDisplacer.PEdges_int}_eeins_{LSDisplacer.PEdges_int_non_seg}_pf_{LSDisplacer.PFix}_F_{FACE}.log'
+    format_res_and_save(res, "extended_" +params)
+    print(params)
     print(f"done in {(end - start):.0f} s -- {count_processed.value} effectively processed")
     faces.close()
 
