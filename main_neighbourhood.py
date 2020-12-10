@@ -101,11 +101,12 @@ for i, f in enumerate(faces):
         points_talus = get_points_talus(talus_shapes)
         edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
 
-        nb_angles = len(points_talus) - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
+        nb_angles = len(points_talus)//2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
         msg = f'nb angles: {nb_angles} | nb edges selected: {len(edges)}'
         loglsd.warning(msg)
         
-        displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
+        roads_wkts = [r.wkt for r in roads_shapes]
+        displacer = LSDisplacer(points_talus, roads_wkts, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
         p = displacer.get_P()
         msg = f'P shape: {p.shape[0]}'
