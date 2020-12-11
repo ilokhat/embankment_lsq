@@ -13,10 +13,9 @@ def get_segments_idx(coords, tal_lengths):
     segs = [(i, i + 1) for i in range(len(coords)-1) if (i, i + 1) not in to_remove]
     return segs
 
-# length of edge referenced by index idx (pt_ini, pt_fin) in pts
-def edge_length(idx, pts):
-    xa, ya, xb, yb = pts[idx[0]*2], pts[idx[0]*2 + 1], pts[idx[1]*2], pts[idx[1]*2 + 1]
-    return ((xa - xb)**2 + (ya - yb)**2)**0.5
+#######################################################################################
+# code to eventually remove, integrated in LSDisplacer, no real use here
+# especially if we remove decimate
 
 # num of the linestring for point at index idx 
 def num_talus(idx, talus_lengths):
@@ -26,10 +25,12 @@ def num_talus(idx, talus_lengths):
         i += 1
         s += talus_lengths[i]
     return i
+#######################################################################################
 
 # remove edges where angles are too narrow
 def decimate_edges(edges, vertices, talus_lengths, EPSILON = 0.11):
     remainings = set()
+    # we remove non proper segments of a talus
     for e in edges:
         te1 = num_talus(e[0], talus_lengths) 
         te2 = num_talus(e[1], talus_lengths)

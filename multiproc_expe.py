@@ -96,10 +96,10 @@ def func(f):
         
         points_talus = get_points_talus(talus_shapes)
         edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
-        for i, e in enumerate(edges):
-            seg = f'LINESTRING({points_talus[e[0]*2]} {points_talus[e[0]*2 + 1]}, {points_talus[e[1]*2]} {points_talus[e[1]*2 + 1]})'
-            print(seg)
-        nb_angles = len(points_talus)/2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
+        # for i, e in enumerate(edges):
+        #     seg = f'LINESTRING({points_talus[e[0]*2]} {points_talus[e[0]*2 + 1]}, {points_talus[e[1]*2]} {points_talus[e[1]*2 + 1]})'
+        #     print(seg)
+        nb_angles = len(points_talus)//2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
         res_obj['nb_angles'], res_obj['nb_edges'] = nb_angles, len(edges)
         
         # removed shapely objects from LSDisplacer constructor, wkts expected now

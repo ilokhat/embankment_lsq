@@ -7,7 +7,7 @@ from shapely.ops import unary_union
 
 import pygeos
 
-from triangulation import edge_length, num_talus
+from triangulation import num_talus
 
 
 #log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -43,24 +43,20 @@ class LSDisplacer:
 
     def __init__(self, points_talus, roads_wkts, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
-        #self.roads_shapes = [pygeos.io.from_wkt(r) for r in roads_wkts] #roads_shapes
-        #self.roads_shapes =  pygeos.from_wkt(pygeos.to_wkt(pygeos.from_wkt(roads_wkts), rounding_precision=-1, output_dimension=2)) # remove z
         self.roads_shapes =  pygeos.from_wkt(roads_wkts)
         self.talus_lengths = talus_lengths
         self.edges = edges
         self.buffer = buffer
         self.edges_dist_min = edges_dist_min
         self.edges_dist_max = edges_dist_max
-        self.x_courant = self.points_talus.copy() #reshape(-1).copy()
-        # 2 * nb points talus
+        self.x_courant = self.points_talus.copy()
         self.nb_vars = len(self.x_courant)
-        self.e_lengths_ori = self._get_edges_lengths(self.edges) # np.array(self.e_lengths_ori)
+        self.e_lengths_ori = self._get_edges_lengths(self.edges)
         #print(self.e_lengths_ori)
         self.angles_ori = self.angles_crossprod()
         self.P = self.get_P()
         self.meta = {"nb_iters": -1, "time_s": -1, "dx_reached": -1}
-        # test to optimize things
-        #self.roads_tals = self._idx_talux_per_road()
+
 
     def set_params(MAX_ITER=250, NORM_DX=0.3, H=2.0, DIST='MIN', KKT=False,
                    ID_CONST=True, ANGLES_CONST=True, EDGES_CONST=True, DIST_CONST=True,
@@ -83,12 +79,19 @@ class LSDisplacer:
         LSDisplacer.PDistRoads = PDistRoads
 
 
-    # utility method to build a shapely line for points starting at offset and having size number of points
-    # def _line_from_points(points, offset, size):
-    #     #tal = asLineString(points[offset:offset+size])
-    #     tal = pygeos.creation.linestrings(points[offset:offset+size])
-    #     return tal  
+    # length of edge referenced by index idx (pt_ini, pt_fin) in pts
+    def _edge_length(self, idx ): #, pts):
+        xa, ya, xb, yb = self.x_courant[idx[0]*2], self.x_courant[idx[0]*2 + 1], self.x_courant[idx[1]*2], self.x_courant[idx[1]*2 + 1]
+        return ((xa - xb)**2 + (ya - yb)**2)**0.5
 
+    # num of the linestring for point at index idx 
+    def _num_talus(idx, talus_lengths):
+        i = 0
+        s = talus_lengths[0]
+        while idx >= s:
+            i += 1
+            s += talus_lengths[i]
+        return i
 
     # pygeos, returns an array of linestrings from the points of all talus lines
     def _lines_from_points(points, talus_lengths):
@@ -123,7 +126,7 @@ class LSDisplacer:
     def _get_edges_lengths(self, edges):
         edges_lengths_ori = []
         for e in edges:
-            el = edge_length(e, self.points_talus) #.reshape(-1))
+            el = self._edge_length(e) #, self.points_talus)
             if el < self.edges_dist_min and num_talus(e[0], self.talus_lengths) != num_talus(e[1], self.talus_lengths):
                 loglsd.debug("min reached inter edges")
                 el = self.edges_dist_min
@@ -148,32 +151,6 @@ class LSDisplacer:
             offset += size
         return np.array(cross_products)
 
-
-    # def partial_derivatives_cross_normo(self): #, points, talus_lengths):
-    #     offset = 0
-    #     cross_products = []
-    #     for size in self.talus_lengths:
-    #         m = np.zeros(self.nb_vars)
-    #         for i in range(offset + 1, offset + size - 1):
-    #             u = self.x_courant[2*i - 2:2*i + 4]
-    #             # df en Xi-1, Yi-1
-    #             dfx = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(2*u[0] - 2*u[2])/((-u[0] + u[2])**2 + (-u[1] + u[3])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[3] - u[5])
-    #             dfy = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(2*u[1] - 2*u[3])/((-u[0] + u[2])**2 + (-u[1] + u[3])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[2] + u[4])
-    #             m[2*i - 2] = dfx
-    #             m[2*i - 1] = dfy
-    #             # df en Xi, Yi
-    #             dfx = (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-0.5*((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*(2*u[2] - 2*u[4]) - 0.5*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)*(-2*u[0] + 2*u[2]))*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))/(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[1] + u[5])
-    #             dfy = (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-0.5*((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*(2*u[3] - 2*u[5]) - 0.5*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)*(-2*u[1] + 2*u[3]))*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))/(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2)) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[0] - u[4])
-    #             m[2*i] = dfx
-    #             m[2*i + 1] = dfy
-    #             # df en Xi+1, Yi+1
-    #             dfx = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(-2*u[2] + 2*u[4])/((-u[2] + u[4])**2 + (-u[3] + u[5])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(u[1] - u[3])
-    #             dfy = -0.5*(((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*((-u[0] + u[2])*(-u[3] + u[5]) - (-u[1] + u[3])*(-u[2] + u[4]))*(-2*u[3] + 2*u[5])/((-u[2] + u[4])**2 + (-u[3] + u[5])**2) + (((-u[0] + u[2])**2 + (-u[1] + u[3])**2)*((-u[2] + u[4])**2 + (-u[3] + u[5])**2))**(-0.5)*(-u[0] + u[2])
-    #             m[2*i + 2] = dfx
-    #             m[2*i + 3] = dfy
-    #             cross_products.append(m)
-    #         offset += size
-    #     return np.array(cross_products)
 
     # derived with sympy
     def cross_norm_diff(self):
@@ -220,7 +197,6 @@ class LSDisplacer:
 
 
     def dist_F_diff(self, road):
-        coords = self.x_courant
         # diagonal matrix with H on diagonal
         h = np.eye(self.nb_vars) * self.H
         coords_plus_H = self.x_courant + h
@@ -264,7 +240,7 @@ class LSDisplacer:
                         loglsd.debug("**** intra edge segment")
                         wEdges.append(LSDisplacer.PEdges_int)
                 else:
-                    if edge_length(e, self.points_talus) >= self.edges_dist_max:
+                    if self._edge_length(e) >= self.edges_dist_max: #, self.points_talus)
                         loglsd.debug("**** max inter edges threshold reached : minimalizing weight for this edge")
                         wEdges.append(LSDisplacer.Pedges_ext_far)
                     else:
@@ -296,7 +272,7 @@ class LSDisplacer:
         if LSDisplacer.EDGES_CONST:
             e_lengths = []
             for e in self.edges:
-                e_lengths.append(edge_length(e, self.x_courant))
+                e_lengths.append(self._edge_length(e)) #, self.x_courant))
             ee = self.e_lengths_ori - np.array(e_lengths)
             if b is None:
                 b = ee
@@ -306,7 +282,6 @@ class LSDisplacer:
         if LSDisplacer.DIST_CONST:
             r_dists = []
             for r in self.roads_shapes:
-                #fk = - self.dist_F(r, self.x_courant.reshape(-1, 2))
                 fk = - self.dist_F_vectorized(r, self.x_courant[np.newaxis,:] )
                 r_dists.append(fk.item())
             if b is None:
