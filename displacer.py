@@ -7,7 +7,7 @@ from shapely.ops import unary_union
 
 import pygeos
 
-from triangulation import num_talus
+#from triangulation import num_talus
 
 
 #log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -84,13 +84,13 @@ class LSDisplacer:
         xa, ya, xb, yb = self.x_courant[idx[0]*2], self.x_courant[idx[0]*2 + 1], self.x_courant[idx[1]*2], self.x_courant[idx[1]*2 + 1]
         return ((xa - xb)**2 + (ya - yb)**2)**0.5
 
-    # num of the linestring for point at index idx 
-    def _num_talus(idx, talus_lengths):
+    # talus' number for point at index idx 
+    def _num_talus(self, idx):
         i = 0
-        s = talus_lengths[0]
+        s = self.talus_lengths[0]
         while idx >= s:
             i += 1
-            s += talus_lengths[i]
+            s += self.talus_lengths[i]
         return i
 
     # pygeos, returns an array of linestrings from the points of all talus lines
@@ -127,7 +127,7 @@ class LSDisplacer:
         edges_lengths_ori = []
         for e in edges:
             el = self._edge_length(e) #, self.points_talus)
-            if el < self.edges_dist_min and num_talus(e[0], self.talus_lengths) != num_talus(e[1], self.talus_lengths):
+            if el < self.edges_dist_min and self._num_talus(e[0]) != self._num_talus(e[1]):
                 loglsd.debug("min reached inter edges")
                 el = self.edges_dist_min
             edges_lengths_ori.append(el)
@@ -230,7 +230,7 @@ class LSDisplacer:
         if LSDisplacer.EDGES_CONST:
             wEdges = []
             for i, e in enumerate(self.edges):
-                same_talus = num_talus(e[0], self.talus_lengths) == num_talus(e[1], self.talus_lengths)
+                same_talus = self._num_talus(e[0]) == self._num_talus(e[1])
                 non_consecutive_points = abs(e[0] - e[1]) != 1
                 if same_talus:
                     if non_consecutive_points:
