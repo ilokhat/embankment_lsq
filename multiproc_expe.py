@@ -102,9 +102,9 @@ def func(f):
         nb_angles = len(points_talus)//2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
         res_obj['nb_angles'], res_obj['nb_edges'] = nb_angles, len(edges)
         
-        # removed shapely objects from LSDisplacer constructor, wkts expected now
-        roads_wkts = [r.wkt for r in roads_shapes]
-        displacer = LSDisplacer(points_talus, roads_wkts, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
+        # removed shapely objects from LSDisplacer constructor, roads wkts and their associated distance expected now
+        roads_wkts_and_buffers = [(r.wkt, BUF) for r in roads_shapes]
+        displacer = LSDisplacer(points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
         p = displacer.get_P()
         res_obj['p_shape'] = p.shape[0]

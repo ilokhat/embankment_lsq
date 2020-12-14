@@ -34,12 +34,14 @@ class LSDisplacer:
     PDistRoads = 1000
     FLOATING_NORM = True
 
-    def __init__(self, points_talus, roads_wkts, talus_lengths, edges, buffer=15, edges_dist_min=10, edges_dist_max=30):
+    def __init__(self, points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
-        self.roads_shapes =  pygeos.from_wkt(roads_wkts)
+        #self.roads_shapes =  pygeos.from_wkt(roads_wkts)
+        self.roads_shapes =  pygeos.from_wkt([r[0] for r in roads_wkts_and_buffers])
+        self.buffers = np.array([r[1] for r in roads_wkts_and_buffers])
         self.talus_lengths = talus_lengths
         self.edges = edges
-        self.buffer = buffer
+        #self.buffer = buffer
         self.edges_dist_min = edges_dist_min
         self.edges_dist_max = edges_dist_max
         self.x_courant = self.points_talus.copy()
@@ -173,7 +175,7 @@ class LSDisplacer:
       
     # each line of points_array contains points for multiple lines, offset and size is deduced from self.talus_lengths
     # returns an array of distances from road, either min or mean
-    def dist_F_vectorized(self, road, points_array):
+    def dist_F_vectorized(self, road, i, points_array):
         ml = []
         for c in points_array:
             if LSDisplacer.DIST == 'MIN':
@@ -185,18 +187,18 @@ class LSDisplacer:
         dists = pygeos.distance(road, ml)
         if LSDisplacer.DIST != 'MIN':
             dists = dists.mean(axis=1)
-        dists = np.where(dists > self.buffer, 0., self.buffer - dists)
+        dists = np.where(dists > self.buffers[i], 0., self.buffers[i] - dists)
         return dists
 
 
-    def dist_F_diff(self, road):
+    def dist_F_diff(self, road, i):
         # diagonal matrix with H on diagonal
         h = np.eye(self.nb_vars) * self.H
         coords_plus_H = self.x_courant + h
         coords_minus_H = self.x_courant - h
         # seems a bit faster to have 2 np arrays instead of the same one splitted 
-        d_plus = self.dist_F_vectorized(road, coords_plus_H)
-        d_min = self.dist_F_vectorized(road, coords_minus_H)
+        d_plus = self.dist_F_vectorized(road, i, coords_plus_H)
+        d_min = self.dist_F_vectorized(road, i, coords_minus_H)
         ds = (d_plus - d_min) / (2* self.H)
         return ds
 
@@ -273,8 +275,8 @@ class LSDisplacer:
         # distance from roads
         if LSDisplacer.DIST_CONST:
             r_dists = []
-            for r in self.roads_shapes:
-                fk = - self.dist_F_vectorized(r, self.x_courant[np.newaxis,:] )
+            for i, r in enumerate(self.roads_shapes):
+                fk = - self.dist_F_vectorized(r, i, self.x_courant[np.newaxis,:])
                 r_dists.append(fk.item())
             if b is None:
                 b = np.array(r_dists)
@@ -309,8 +311,8 @@ class LSDisplacer:
         # distance from roads
         if LSDisplacer.DIST_CONST:
             r_dists = []
-            for r in self.roads_shapes:
-                fk = self.dist_F_diff(r)
+            for i, r in enumerate(self.roads_shapes):
+                fk = self.dist_F_diff(r, i)
                 r_dists.append(fk)
             if a is None :
                 a = np.array(r_dists)

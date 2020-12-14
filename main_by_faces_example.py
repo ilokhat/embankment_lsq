@@ -9,7 +9,7 @@ faces_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/faces_reseau.shp"
 network_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
 talus_file = "/mnt/data/mac/work/talus/Donnees_talus/o_ligne_n0.shp"
 
-LSDisplacer.set_params(MAX_ITER=250, DIST='MIN', ANGLES_CONST=True, NORM_DX=0.3,
+LSDisplacer.set_params(MAX_ITER=15, DIST='MIN', ANGLES_CONST=True, NORM_DX=0.3,
                        PAngles=50, PEdges_ext=50, Pedges_ext_far=1, PEdges_int=5, PEdges_int_non_seg=2, PDistRoads=1000)
 #loglsd.setLevel(logging.WARNING) # par défaut on est en level INFO
 loglsd.setLevel(logging.DEBUG)
@@ -61,9 +61,9 @@ for i, f in enumerate(faces):
     msg = f'nb angles: {nb_angles} | nb edges selected: {len(edges)}'
     loglsd.warning(msg)
     
-    # removed shapely objects from LSDisplacer constructor, wkts expected now
-    roads_shapes = [r.wkt for r in roads_shapes]
-    displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
+    # removed shapely objects from LSDisplacer constructor, wkts and associated buffers expected now
+    roads_wkts_and_buffers = [(r.wkt, BUF) for r in roads_shapes]
+    displacer = LSDisplacer(points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
     p = displacer.get_P()
     msg = f'P shape: {p.shape[0]}'

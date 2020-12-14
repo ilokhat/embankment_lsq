@@ -105,8 +105,9 @@ for i, f in enumerate(faces):
         msg = f'nb angles: {nb_angles} | nb edges selected: {len(edges)}'
         loglsd.warning(msg)
         
-        roads_wkts = [r.wkt for r in roads_shapes]
-        displacer = LSDisplacer(points_talus, roads_wkts, talus_lengths, edges, buffer=BUF, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
+        #roads_wkts = [r.wkt for r in roads_shapes]
+        roads_wkts_and_buffers = [(r.wkt, BUF) for r in roads_shapes]
+        displacer = LSDisplacer(points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
         p = displacer.get_P()
         msg = f'P shape: {p.shape[0]}'
