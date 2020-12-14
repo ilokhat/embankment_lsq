@@ -1,14 +1,7 @@
 from timeit import default_timer as timer
 import logging
 import numpy as np
-
-from shapely.geometry import asLineString
-from shapely.ops import unary_union
-
 import pygeos
-
-#from triangulation import num_talus
-
 
 #log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 log_format = '%(message)s'
@@ -221,7 +214,6 @@ class LSDisplacer:
     def get_P(self):
         weights = []
         if LSDisplacer.ID_CONST:
-            #wfix = np.full(2*len(self.points_talus), LSDisplacer.PFix)
             wfix = np.full(self.nb_vars, LSDisplacer.PFix)
             weights.append(wfix)
         if LSDisplacer.ANGLES_CONST:
@@ -240,7 +232,7 @@ class LSDisplacer:
                         loglsd.debug("**** intra edge segment")
                         wEdges.append(LSDisplacer.PEdges_int)
                 else:
-                    if self._edge_length(e) >= self.edges_dist_max: #, self.points_talus)
+                    if self._edge_length(e) >= self.edges_dist_max: 
                         loglsd.debug("**** max inter edges threshold reached : minimalizing weight for this edge")
                         wEdges.append(LSDisplacer.Pedges_ext_far)
                     else:
@@ -291,7 +283,7 @@ class LSDisplacer:
         return b
 
 
-    def get_A(self): #, X_courant, roads_shapes, talus_lengths, edges): #, ID_CONST=True, ANGLES_CONST=True, EDGES_CONST=True, DIST_CONST=True):
+    def get_A(self): 
         a = None
         # inertia
         if LSDisplacer.ID_CONST:
@@ -337,14 +329,13 @@ class LSDisplacer:
             C = self.get_A()
             D = self.get_B()
             LSDisplacer.ID_CONST, LSDisplacer.ANGLES_CONST, LSDisplacer.EDGES_CONST = idsave, angsave, edgessave
-
             loglsd.debug(f"A{A.shape} B{B.shape} C{C.shape} D{D.shape} P{self.P.shape}")
             atp = A.T @ self.P 
             atpa = atp @ A
-            kkt = np.vstack((2*atpa, C))
+            kkt = np.vstack((2 * atpa, C))
             kkt = np.hstack((kkt, np.vstack((C.T, np.zeros((len(self.roads_shapes), len(self.roads_shapes)))))))
             atpb = atp @ B
-            kkt_b = np.concatenate((2* atpb, D))
+            kkt_b = np.concatenate((2 * atpb, D))
             dx = np.linalg.lstsq(kkt, kkt_b, rcond=None)
             return dx
         A = self.get_A()

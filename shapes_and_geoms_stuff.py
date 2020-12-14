@@ -1,6 +1,5 @@
 import numpy as np
 import fiona
-#from shapely.wkt import loads
 from shapely.geometry import shape, LineString, Point
 from shapely.strtree import STRtree
 from shapely.ops import linemerge
