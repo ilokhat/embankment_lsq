@@ -58,30 +58,12 @@ for i, f in enumerate(faces):
     # if i > 3000:
     #     break
     roads_shapes = get_roads_for_face(f, ntree, merge=False)
-    # for r in roads_shapes:
-    #     print(r)
     talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=True)
-    #idt_by_wkt = [dict((t.wkt, i) for i, t in enumerate(talus_shapes))]
-    # for t in talus_shapes:
-    #     print(t)
-    #talus_shapes.pop(0)
-    # small_ttree = STRtree(talus_shapes)
-    # small_rtree = STRtree(roads_shapes)
-    # msg = f"small talus tree (size {len(talus_shapes)}) built"
-    # loglsd.warning(msg)
     
     u = unary_union([t.buffer(EDGES_D_MAX) for t in talus_shapes])
     tals_groups = get_shapes_partition(u, talus_shapes)
     roads_groups = get_shapes_partition(u, roads_shapes)
     roads_groups = [merge_roads(rg) for rg in roads_groups]
-
-    #print(len(tals_groups), len(roads_groups))
-    # for j in range(len(tals_groups)):
-    #     print(len(tals_groups[j]), len(roads_groups[j]))
-    #break
-    # idx = 8
-    # talus_shapes = tals_groups[idx]
-    # roads_shapes = roads_groups[idx]
 
     for idx in range(len(tals_groups)):
         talus_shapes = tals_groups[idx]

@@ -36,18 +36,15 @@ class LSDisplacer:
 
     def __init__(self, points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=10, edges_dist_max=30):
         self.points_talus = points_talus
-        #self.roads_shapes =  pygeos.from_wkt(roads_wkts)
         self.roads_shapes =  pygeos.from_wkt([r[0] for r in roads_wkts_and_buffers])
         self.buffers = np.array([r[1] for r in roads_wkts_and_buffers])
         self.talus_lengths = talus_lengths
         self.edges = edges
-        #self.buffer = buffer
         self.edges_dist_min = edges_dist_min
         self.edges_dist_max = edges_dist_max
         self.x_courant = self.points_talus.copy()
         self.nb_vars = len(self.x_courant)
         self.e_lengths_ori = self._get_edges_lengths(self.edges)
-        #print(self.e_lengths_ori)
         self.angles_ori = self.angles_crossprod()
         self.P = self.get_P()
         self.meta = {"nb_iters": -1, "time_s": -1, "dx_reached": -1}
@@ -377,63 +374,8 @@ class LSDisplacer:
             if normdx < norm_float : #NORM_DX :
                 break
             if LSDisplacer.FLOATING_NORM:
-                #print('reshaping norm')
                 norm_float = LSDisplacer.NORM_DX if i < 100 else (LSDisplacer.NORM_DX + 2 * min_dx) / 3
         end_loop = timer()
         self.meta['nb_iters'], self.meta['time_s'], self.meta['dx_reached'] = i, (end_loop - start_loop), min_dx
         loglsd.warning(f'nb iterations: {i + 1} -- min |dx| reached: {min_dx} -- NORM_DXf: {norm_float} -- {(self.meta["time_s"]):.2f}s ')
         return self.x_courant
-
-if __name__ == '__main__':
-    import fiona
-    from triangulation import get_edges_from_triangulation
-    from shapes_and_geoms_stuff import get_STRtrees, get_roads_for_face, get_talus_inside_face, get_points_talus
-
-    faces_file = "/home/imran/projets/talus/Donnees_talus/Talus/faces_reseau.shp"
-    network_file = "/home/imran/projets/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
-    talus_file = "/home/imran/projets/talus/Donnees_talus/o_ligne_n0.shp"
-
-    DECIMATE_EDGES = False
-    MAX_MAT_SIZE = 500 #300 #1200
-    FACE = 1641 #1153 #752
-    LSDisplacer.KKT = False
-
-    faces = fiona.open(faces_file, 'r')
-    ntree, ttree = get_STRtrees(network_file, talus_file)
-    start = timer()
-    for i, f in enumerate(faces):
-        if i != FACE:
-            continue
-        roads_shapes = get_roads_for_face(f, ntree)
-        talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=True)
-        nb_tals = len(talus_shapes)
-        talus_lengths = [len(t.coords) for t in talus_shapes]
-        print("Face", i, "| nb talus:", nb_tals, "| nb points talus:", sum(talus_lengths), "| nb roads:", len(roads_shapes))
-        # on ne traite pas les faces sans talus, celles ou il y a 2 points(pas de triangulation), ou trop grosses
-        if nb_tals == 0 or sum(talus_lengths) == 2 or len(roads_shapes) > 20 or len(talus_shapes) > 10 : 
-            print('Skipped, no talus or only 2 points or too much roads or talus')
-            print('----------------------------------------------------------------------')
-            continue
-        
-        points_talus = get_points_talus(talus_shapes)
-        edges = get_edges_from_triangulation(points_talus, talus_lengths, decimate=DECIMATE_EDGES)
-        nb_angles = len(points_talus)/2 - 2 * nb_tals #len(angles_crossprod(points_talus.reshape(-1), talus_lengths))
-        print(f'nb angles: {nb_angles} | nb edges selected: {len(edges)}')
-        
-        displacer = LSDisplacer(points_talus, roads_shapes, talus_lengths, edges, 15)
-
-        p = displacer.get_P()
-        if p.shape[0] > MAX_MAT_SIZE: #300:
-            print("Skipped, big matrix", p.shape[0])
-            print('----------------------------------------------------------------------')
-            continue
-        print("P shape: ", p.shape[0])
-        res = displacer.square()
-        #res = res.reshape(-1, 2)
-        displacer.print_linestrings_wkts()
-        print('----------------------------------------------------------------------')
-
-    end = timer()
-    print(f"done in {(end - start):.0f} s")
-    faces.close()
-
