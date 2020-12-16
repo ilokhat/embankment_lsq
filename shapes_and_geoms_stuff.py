@@ -46,47 +46,27 @@ def get_roads_for_face(f, ntree, merge=True):
     roads_shapes = [line for line in road_candidates if line.intersects(face) and not line.intersection(face).geom_type.endswith('Point')]
     if not merge:
         return roads_shapes
-    return merge_roads(roads_shapes)
-    roads_merged = linemerge(roads_shapes)
-    if roads_merged.geom_type == 'LineString':
-        roads_shapes = [roads_merged]
-    else: 
-        roads_shapes = [r for r in roads_merged]
+    #return merge_roads(roads_shapes)
+    roads_shapes = merge_roads(roads_shapes)
     ext_ints = [LineString(face.exterior)]
     for inte in face.interiors:
         ext_ints.append(LineString(inte))
     rs = ext_ints[:]
     for r in roads_shapes:
         #print(r)
-        at_least_one = False
+        at_least_one_face_frontier_contains_r = False
         for l in ext_ints:
             if l.contains(r):
-                at_least_one = True
+                at_least_one_face_frontier_contains_r = True
                 break
-        if not at_least_one:
+        if not at_least_one_face_frontier_contains_r:
             rs.append(r)
     return rs
 
 def merge_roads(roads_shapes):
     roads_merged = linemerge(roads_shapes)
-    if roads_merged.geom_type == 'LineString':
-        roads_shapes = [roads_merged]
-    else: 
-        roads_shapes = [r for r in roads_merged]
-    # ext_ints = [LineString(face.exterior)]
-    # for inte in face.interiors:
-    #     ext_ints.append(LineString(inte))
-    # rs = ext_ints[:]
-    # for r in roads_shapes:
-    #     #print(r)
-    #     at_least_one = False
-    #     for l in ext_ints:
-    #         if l.contains(r):
-    #             at_least_one = True
-    #             break
-    #     if not at_least_one:
-    #         rs.append(r)
-    return roads_shapes
+    roads = [roads_merged] if roads_merged.geom_type == 'LineString' else [r for r in roads_merged]
+    return roads
 
 
 def displace_line_from_centroid_when_snapped_to_road(face, line):
