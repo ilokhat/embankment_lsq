@@ -145,7 +145,7 @@ class LSDisplacer:
 
 
     # derived with sympy
-    def cross_norm_diff(self):
+    def cross_norm_diff_brut(self):
         offset = 0
         cross_products = []
         for size in self.talus_lengths:
@@ -166,6 +166,41 @@ class LSDisplacer:
                 m[2*i + 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (-y + ypp)*((x - xss)**2 + (y - yss)**2))/((x - xss)**2 + (y - yss)**2)
                 # df/dyi+1
                 m[2*i + 3] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((x - xpp)*((x - xss)**2 + (y - yss)**2) - 1.0*(y - yss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xss)**2 + (y - yss)**2)                
+                cross_products.append(m)
+            offset += size
+        return np.array(cross_products)
+    
+    # derived with sympy, micro optimized
+    def cross_norm_diff(self):
+        offset = 0
+        cross_products = []
+        for size in self.talus_lengths:
+            m = np.zeros(self.nb_vars)
+            for i in range(offset + 1, offset + size - 1):
+                # xi, yi => x, y | xi-1, yi-1 => xpp, ypp | xi+1, yi+1 => xss, yss
+                u = self.x_courant[2*i - 2:2*i + 4]
+                xpp, ypp, x, y, xss, yss = u[0], u[1], u[2], u[3], u[4], u[5]
+                x_xpp = x - xpp
+                y_ypp = y - ypp
+                x_xss = x - xss
+                y_yss = y - yss
+                b = ((x_xpp)**2 + (y_ypp)**2)
+                d = ((x_xss)**2 + (y_yss)**2)
+                c = ((x_xpp)*(y_yss) - (x_xss)*(y_ypp))
+                bd = b*d
+                a = (bd)**(-0.5)
+                # df/dxi-1
+                m[2*i - 2] = a*(-x_xpp*c + y_yss*b)/b
+                # df/dyi-1
+                m[2*i - 1] = a*(-x_xss*b - y_ypp*c)/b
+                # df/dxi
+                m[2*i] = a*((-ypp + yss)*bd + c*((x_xpp)*d + (x_xss)*b))/bd
+                # df/dyi
+                m[2*i + 1] = a*((xpp - xss)*bd + c*((y_ypp)*d + (y_yss)*b))/bd
+                # df/dxi+1
+                m[2*i + 2] = a*(-x_xss*c - y_ypp*d)/d
+                # df/dyi+1
+                m[2*i + 3] = a*(x_xpp*d - y_yss*c)/d
                 cross_products.append(m)
             offset += size
         return np.array(cross_products)
