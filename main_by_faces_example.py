@@ -9,13 +9,13 @@ faces_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/faces_reseau.shp"
 network_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
 talus_file = "/mnt/data/mac/work/talus/Donnees_talus/o_ligne_n0.shp"
 
-LSDisplacer.set_params(MAX_ITER=15, NORM_DX=0.3,
+LSDisplacer.set_params(MAX_ITER=250, NORM_DX=0.3,
                        PAngles=50, PEdges_ext=50, Pedges_ext_far=1, PEdges_int=5, PEdges_int_non_seg=2, PDistRoads=1000)
 #loglsd.setLevel(logging.WARNING) # par défaut on est en level INFO
 loglsd.setLevel(logging.DEBUG)
 
 MAX_MAT_SIZE = 1700 #400
-FACE = 861 #2220 #738 #3032 #423 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
+FACE = 5433 #861 #2220 #738 #3032 #423 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
 
 BUF = 15 # 6.5
 EDGES_D_MIN = 10.

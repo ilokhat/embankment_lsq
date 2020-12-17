@@ -15,7 +15,7 @@ loglsd.setLevel(logging.INFO)
 
 class LSDisplacer:
     MAX_ITER = 250
-    NORM_DX = 0.3 #0.3 #0.05
+    NORM_DX = 0.3 
     DIST = 'MIN'
     KKT = False
     # constraints
@@ -24,14 +24,14 @@ class LSDisplacer:
     EDGES_CONST = True
     DIST_CONST = True
     # weights and differentiation step
-    H = 2.0 #1.0
-    PFix = 1.
-    PEdges_int = 10 #10
-    PEdges_int_non_seg = 5
-    PEdges_ext = 2
-    Pedges_ext_far = 0
-    PAngles = 50 #50 #25
-    PDistRoads = 1000
+    H = 2.0 
+    PFix = 8.
+    PEdges_int = 1
+    PEdges_int_non_seg = 1
+    PEdges_ext = 15
+    Pedges_ext_far = 0.5
+    PAngles = 8
+    PDistRoads = 200
     FLOATING_NORM = True
 
     def __init__(self, points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=10, edges_dist_max=30):
@@ -142,35 +142,21 @@ class LSDisplacer:
                 cross_products.append(np.cross(u, v))
             offset += size
         return np.array(cross_products)
-
-
-    # derived with sympy
-    def cross_norm_diff_brut(self):
-        offset = 0
-        cross_products = []
-        for size in self.talus_lengths:
-            m = np.zeros(self.nb_vars)
-            for i in range(offset + 1, offset + size - 1):
-                # xi, yi => x, y | xi-1, yi-1 => xpp, ypp | xi+1, yi+1 => xss, yss
-                u = self.x_courant[2*i - 2:2*i + 4]
-                xpp, ypp, x, y, xss, yss = u[0], u[1], u[2], u[3], u[4], u[5]
-                # df/dxi-1
-                m[2*i - 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xpp)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (y - yss)*((x - xpp)**2 + (y - ypp)**2))/((x - xpp)**2 + (y - ypp)**2)
-                # df/dyi-1
-                m[2*i - 1] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((-x + xss)*((x - xpp)**2 + (y - ypp)**2) - 1.0*(y - ypp)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xpp)**2 + (y - ypp)**2)
-                # df/dxi
-                m[2*i] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((-ypp + yss)*((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2) + ((x - xpp)*(y - yss) - (x - xss)*(y - ypp))*((x - xpp)*((x - xss)**2 + (y - yss)**2) + (x - xss)*((x - xpp)**2 + (y - ypp)**2)))/(((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))
-                # df/dyi
-                m[2*i + 1] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((xpp - xss)*((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2) + ((x - xpp)*(y - yss) - (x - xss)*(y - ypp))*((y - ypp)*((x - xss)**2 + (y - yss)**2) + (y - yss)*((x - xpp)**2 + (y - ypp)**2)))/(((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))
-                # df/dxi+1
-                m[2*i + 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (-y + ypp)*((x - xss)**2 + (y - yss)**2))/((x - xss)**2 + (y - yss)**2)
-                # df/dyi+1
-                m[2*i + 3] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((x - xpp)*((x - xss)**2 + (y - yss)**2) - 1.0*(y - yss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xss)**2 + (y - yss)**2)                
-                cross_products.append(m)
-            offset += size
-        return np.array(cross_products)
-    
+   
     # derived with sympy, micro optimized
+    # raw from sympy it is :
+    # # df/dxi-1
+    # m[2*i - 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xpp)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (y - yss)*((x - xpp)**2 + (y - ypp)**2))/((x - xpp)**2 + (y - ypp)**2)
+    # # df/dyi-1
+    # m[2*i - 1] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((-x + xss)*((x - xpp)**2 + (y - ypp)**2) - 1.0*(y - ypp)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xpp)**2 + (y - ypp)**2)
+    # # df/dxi
+    # m[2*i] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((-ypp + yss)*((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2) + ((x - xpp)*(y - yss) - (x - xss)*(y - ypp))*((x - xpp)*((x - xss)**2 + (y - yss)**2) + (x - xss)*((x - xpp)**2 + (y - ypp)**2)))/(((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))
+    # # df/dyi
+    # m[2*i + 1] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((xpp - xss)*((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2) + ((x - xpp)*(y - yss) - (x - xss)*(y - ypp))*((y - ypp)*((x - xss)**2 + (y - yss)**2) + (y - yss)*((x - xpp)**2 + (y - ypp)**2)))/(((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))
+    # # df/dxi+1
+    # m[2*i + 2] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*(-1.0*(x - xss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)) + (-y + ypp)*((x - xss)**2 + (y - yss)**2))/((x - xss)**2 + (y - yss)**2)
+    # # df/dyi+1
+    # m[2*i + 3] = (((x - xpp)**2 + (y - ypp)**2)*((x - xss)**2 + (y - yss)**2))**(-0.5)*((x - xpp)*((x - xss)**2 + (y - yss)**2) - 1.0*(y - yss)*((x - xpp)*(y - yss) - (x - xss)*(y - ypp)))/((x - xss)**2 + (y - yss)**2)                
     def cross_norm_diff(self):
         offset = 0
         cross_products = []
@@ -178,7 +164,7 @@ class LSDisplacer:
             m = np.zeros(self.nb_vars)
             for i in range(offset + 1, offset + size - 1):
                 # xi, yi => x, y | xi-1, yi-1 => xpp, ypp | xi+1, yi+1 => xss, yss
-                u = self.x_courant[2*i - 2:2*i + 4]
+                u = self.x_courant[2 * i - 2:2 * i + 4]
                 xpp, ypp, x, y, xss, yss = u[0], u[1], u[2], u[3], u[4], u[5]
                 x_xpp = x - xpp
                 y_ypp = y - ypp

@@ -14,15 +14,15 @@ faces_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/faces_reseau.shp"
 network_file = "/mnt/data/mac/work/talus/Donnees_talus/Talus/reseaux_fusionnes.shp"
 talus_file = "/mnt/data/mac/work/talus/Donnees_talus/o_ligne_n0.shp"
 
-LSDisplacer.set_params(MAX_ITER=250, DIST='MIN', ANGLES_CONST=True, NORM_DX=0.3,
-                       PFix=8.0,
-                       PAngles=8, PEdges_ext=15, Pedges_ext_far=0.5, PEdges_int=1, PEdges_int_non_seg=1, PDistRoads=200)
+LSDisplacer.set_params(MAX_ITER=250, DIST='MIN', NORM_DX=0.3,
+                       PFix=8.0, PDistRoads=200,
+                       PAngles=8, PEdges_ext=15, Pedges_ext_far=0.5, PEdges_int=1, PEdges_int_non_seg=1)
                        #PAngles=50, PEdges_ext=50, Pedges_ext_far=1, PEdges_int=5, PEdges_int_non_seg=2, PDistRoads=1000)
 
 loglsd.setLevel(logging.WARNING) # par défaut on est en level INFO, et on ne veut pas le détail de chaque itération
 #loglsd.setLevel(logging.DEBUG)
 
-MAX_MAT_SIZE = 1400 #400
+MAX_MAT_SIZE = 400 #400
 FACE = 9109 #4125 #3247 #6073 #3032 #3938 #3994 #3247 #4262 #3550 #6850 #8942 #8890 #1641 #1153 #752
 BUF = 15 + 1.5# 6.5
 EDGES_D_MIN = 10.
@@ -37,12 +37,12 @@ def get_shapes_partition(buff_union, shapes):
         buff_union = MultiPolygon([buff_union])
     # reusing a tree could have been more efficient, 
     # but it's small and it didn't work as expected when I tested
+    done = set()
     for p in buff_union :
         g = []
-        done = set()
-        for i, t in enumerate(shapes):
-            if i not in done and t.intersects(p):
-                g.append(t)
+        for i, s in enumerate(shapes):
+            if i not in done and s.intersects(p):
+                g.append(s)
                 done.add(i)
         groups.append(g)
     return groups
@@ -68,7 +68,7 @@ def func(f):
     global count_processed
     fid = f['id']
     roads_shapes = get_roads_for_face(f, ntree, merge=False)
-    talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=False)  
+    talus_shapes = get_talus_inside_face(f, ttree, merge=True, displace=True)
     u = unary_union([t.buffer(EDGES_D_MAX) for t in talus_shapes])
     tals_groups = get_shapes_partition(u, talus_shapes)
     roads_groups = get_shapes_partition(u, roads_shapes)
@@ -96,7 +96,7 @@ def func(f):
         roads_wkts_and_buffers = [(r.wkt, BUF) for r in roads_shapes]
         displacer = LSDisplacer(points_talus, roads_wkts_and_buffers, talus_lengths, edges, edges_dist_min=EDGES_D_MIN, edges_dist_max=EDGES_D_MAX)
 
-        p = displacer.get_P()
+        p = displacer.P
         res_obj['p_shape'] = p.shape[0]
         if p.shape[0] > MAX_MAT_SIZE:
             res_obj['lines'] = 'Skipped, too big matrix'
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     end = timer()
     print(50*"*", len(res))
     params = f'a_{LSDisplacer.PAngles}_eext_{LSDisplacer.PEdges_ext}_eextf_{LSDisplacer.Pedges_ext_far}_eei_{LSDisplacer.PEdges_int}_eeins_{LSDisplacer.PEdges_int_non_seg}_pf_{LSDisplacer.PFix}_F_{FACE}.log'
-    format_res_and_save(res, "extended_" + params)
+    format_res_and_save(res, "dt_extended_" + params)
     print(params)
     print(f"done in {(end - start):.0f} s -- {count_processed.value} effectively processed")
     faces.close()
