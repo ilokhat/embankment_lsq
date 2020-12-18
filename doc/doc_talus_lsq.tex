@@ -607,7 +607,7 @@ Prend en entrée une liste de géométries Shapely de lignes et renvoie un numpy
 def get_STRtrees(network_file, talus_file)
 \end{minted}
 
-Prend en entrée le chemin vers les shapefiles des routes et talus, et construit deux \textit{STRTree}\footnote{\url{https://shapely.readthedocs.io/en/stable/manual.html\#str-packed-r-tree}}, qui vont permettre d'avoir un index spatial rapide sur les deux collections de lignes.\\
+Prend en entrée le chemin vers les shapefiles des routes et talus, et construit deux \textit{STRtree}\footnote{\url{https://shapely.readthedocs.io/en/stable/manual.html\#str-packed-r-tree}}, qui vont permettre d'avoir un index spatial rapide sur les deux collections de lignes.\\
 
 Ce qui va permettre d'accélérer la sélection de routes ou de talus, pour un îlot donné.
 
@@ -617,7 +617,7 @@ Ce qui va permettre d'accélérer la sélection de routes ou de talus, pour un �
 def get_talus_inside_face(f, ttree, merge=True, displace=True)
 \end{minted}
 
-Prend en entrée un polygone $f$ représentant un îlot urbain, le \textit{STRTree} des talus, et renvoie les intersections de tous les talus et de cet îlot.\\
+Prend en entrée un polygone $f$ représentant un îlot urbain, le \textit{STRtree} des talus, et renvoie les intersections de tous les talus et de cet îlot.\\
 Si \textit{merge} est à \textit{True}, on essaie de fusionner les talus consécutifs en un seul talus. \\
 Si \textit{displace} est à \textit{True}, on essaie de déplacer les talus qui sont sur la frontière de l'îlot à l'intérieur, soit en les bougeant vers le centroïde de la face si c'est possible, ou alors de manière aléatoire.
 \subsubsection{get\_roads\_for\_face}

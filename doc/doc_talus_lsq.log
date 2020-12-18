@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2020.11.17)  18 DEC 2020 11:16
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2020.11.17)  18 DEC 2020 11:24
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1051,7 +1051,7 @@ e/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf
 fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive/texmf-dist/fonts/
 type1/public/amsfonts/cm/cmtt8.pfb></usr/share/texlive/texmf-dist/fonts/type1/p
 ublic/amsfonts/cm/cmtt9.pfb>
-Output written on doc_talus_lsq.pdf (16 pages, 484247 bytes).
+Output written on doc_talus_lsq.pdf (16 pages, 484234 bytes).
 PDF statistics:
  374 PDF objects out of 1000 (max. 8388607)
  310 compressed objects within 4 object streams
