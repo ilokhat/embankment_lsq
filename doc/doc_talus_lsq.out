@@ -1,0 +1,27 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Moindres carr\351s non lin\351aires}{}% 2
+\BOOKMARK [1][-]{section.3}{Contraintes}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Mouvement}{section.3}% 4
+\BOOKMARK [2][-]{subsection.3.2}{Angles}{section.3}% 5
+\BOOKMARK [2][-]{subsection.3.3}{Longueur des segments}{section.3}% 6
+\BOOKMARK [2][-]{subsection.3.4}{Distance minimale aux routes}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.5}{Mise en forme matricielle}{section.3}% 8
+\BOOKMARK [3][-]{subsubsection.3.5.1}{Mod\350le}{subsection.3.5}% 9
+\BOOKMARK [3][-]{subsubsection.3.5.2}{Matrice jacobienne}{subsection.3.5}% 10
+\BOOKMARK [1][-]{section.4}{Impl\351mentation}{}% 11
+\BOOKMARK [2][-]{subsection.4.1}{Classe LSDisplacer }{section.4}% 12
+\BOOKMARK [2][-]{subsection.4.2}{D\351tails d'impl\351mentation}{section.4}% 13
+\BOOKMARK [3][-]{subsubsection.4.2.1}{Structures des donn\351es}{subsection.4.2}% 14
+\BOOKMARK [3][-]{subsubsection.4.2.2}{square}{subsection.4.2}% 15
+\BOOKMARK [3][-]{subsubsection.4.2.3}{compute\137dx}{subsection.4.2}% 16
+\BOOKMARK [3][-]{subsubsection.4.2.4}{Matrices P, A et B}{subsection.4.2}% 17
+\BOOKMARK [2][-]{subsection.4.3}{Triangulation}{section.4}% 18
+\BOOKMARK [2][-]{subsection.4.4}{Code utilitaire}{section.4}% 19
+\BOOKMARK [3][-]{subsubsection.4.4.1}{get\137points\137talus}{subsection.4.4}% 20
+\BOOKMARK [3][-]{subsubsection.4.4.2}{get\137STRtrees}{subsection.4.4}% 21
+\BOOKMARK [3][-]{subsubsection.4.4.3}{get\137talus\137inside\137face}{subsection.4.4}% 22
+\BOOKMARK [3][-]{subsubsection.4.4.4}{get\137roads\137for\137face}{subsection.4.4}% 23
+\BOOKMARK [2][-]{subsection.4.5}{Exemples d'utilisation}{section.4}% 24
+\BOOKMARK [3][-]{subsubsection.4.5.1}{main\137simple\137example.py}{subsection.4.5}% 25
+\BOOKMARK [3][-]{subsubsection.4.5.2}{main\137by\137faces\137example.py}{subsection.4.5}% 26
+\BOOKMARK [3][-]{subsubsection.4.5.3}{multiproc\137expe.py}{subsection.4.5}% 27

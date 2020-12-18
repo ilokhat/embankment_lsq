@@ -1,0 +1,25 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from} \PYG{n+nn}{shapely.wkt} \PYG{k+kn}{import} \PYG{n}{loads}
+\PYG{k+kn}{from} \PYG{n+nn}{shapes\PYGZus{}and\PYGZus{}geoms\PYGZus{}stuff} \PYG{k+kn}{import} \PYG{n}{get\PYGZus{}points\PYGZus{}talus}
+\PYG{k+kn}{from} \PYG{n+nn}{triangulation} \PYG{k+kn}{import} \PYG{n}{get\PYGZus{}edges\PYGZus{}from\PYGZus{}triangulation}
+\PYG{k+kn}{from} \PYG{n+nn}{displacer} \PYG{k+kn}{import} \PYG{n}{LSDisplacer}
+
+\PYG{n}{roads} \PYG{o}{=} \PYG{p}{[(}\PYG{l+s+s1}{\PYGZsq{}LineString(...)\PYGZsq{}}\PYG{p}{,} \PYG{l+m+mi}{10}\PYG{p}{),} \PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}LineString(...)\PYGZsq{}}\PYG{p}{,} \PYG{l+m+mi}{20}\PYG{p}{)]}
+\PYG{n}{talus} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}LineString(...)\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}LineString(...)\PYGZsq{}}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}LineString(...)\PYGZsq{}}\PYG{p}{]}
+
+\PYG{n}{talus\PYGZus{}shapes} \PYG{o}{=} \PYG{p}{[}\PYG{n}{loads}\PYG{p}{(}\PYG{n}{t}\PYG{p}{)} \PYG{k}{for} \PYG{n}{t} \PYG{o+ow}{in} \PYG{n}{talus}\PYG{p}{]}
+\PYG{n}{talus\PYGZus{}lengths} \PYG{o}{=} \PYG{p}{[}\PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{t}\PYG{o}{.}\PYG{n}{coords}\PYG{p}{)} \PYG{k}{for} \PYG{n}{t} \PYG{o+ow}{in} \PYG{n}{talus\PYGZus{}shapes}\PYG{p}{]}
+
+\PYG{n}{points\PYGZus{}talus} \PYG{o}{=} \PYG{n}{get\PYGZus{}points\PYGZus{}talus}\PYG{p}{(}\PYG{n}{talus\PYGZus{}shapes}\PYG{p}{)}
+\PYG{n}{edges} \PYG{o}{=} \PYG{n}{get\PYGZus{}edges\PYGZus{}from\PYGZus{}triangulation}\PYG{p}{(}\PYG{n}{points\PYGZus{}talus}\PYG{p}{,} \PYG{n}{talus\PYGZus{}lengths}\PYG{p}{)}
+
+\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{set\PYGZus{}params}\PYG{p}{(}\PYG{n}{MAX\PYGZus{}ITER}\PYG{o}{=}\PYG{l+m+mi}{500}\PYG{p}{,} \PYG{n}{NORM\PYGZus{}DX}\PYG{o}{=}\PYG{l+m+mf}{0.3}\PYG{p}{,}
+                       \PYG{n}{PFix}\PYG{o}{=}\PYG{l+m+mf}{8.0}\PYG{p}{,} \PYG{n}{PDistRoads}\PYG{o}{=}\PYG{l+m+mi}{200}\PYG{p}{,} \PYG{n}{PAngles}\PYG{o}{=}\PYG{l+m+mi}{8}\PYG{p}{,}
+                       \PYG{n}{PEdges\PYGZus{}ext}\PYG{o}{=}\PYG{l+m+mi}{15}\PYG{p}{,} \PYG{n}{Pedges\PYGZus{}ext\PYGZus{}far}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{,}
+                       \PYG{n}{PEdges\PYGZus{}int}\PYG{o}{=}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{PEdges\PYGZus{}int\PYGZus{}non\PYGZus{}seg}\PYG{o}{=}\PYG{l+m+mi}{1}\PYG{p}{)}
+
+\PYG{n}{displacer} \PYG{o}{=} \PYG{n}{LSDisplacer}\PYG{p}{(}\PYG{n}{points\PYGZus{}talus}\PYG{p}{,} \PYG{n}{roads}\PYG{p}{,} \PYG{n}{talus\PYGZus{}lengths}\PYG{p}{,} \PYG{n}{edges}\PYG{p}{)}
+\PYG{k}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}P matrix size\PYGZdq{}}\PYG{p}{,} \PYG{n}{displacer}\PYG{o}{.}\PYG{n}{P}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{)}
+\PYG{n}{displacer}\PYG{o}{.}\PYG{n}{square}\PYG{p}{()}
+\PYG{n}{displacer}\PYG{o}{.}\PYG{n}{print\PYGZus{}linestrings\PYGZus{}wkts}\PYG{p}{()}
+\end{Verbatim}

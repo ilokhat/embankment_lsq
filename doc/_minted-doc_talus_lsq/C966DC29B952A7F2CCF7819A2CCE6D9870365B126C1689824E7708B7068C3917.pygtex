@@ -1,0 +1,21 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{}...}
+\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{EDGES\PYGZus{}CONST}\PYG{p}{:}
+	\PYG{n}{wEdges} \PYG{o}{=} \PYG{p}{[]}
+	\PYG{k}{for} \PYG{n}{i}\PYG{p}{,} \PYG{n}{e} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{edges}\PYG{p}{):}
+		\PYG{n}{same\PYGZus{}talus} \PYG{o}{=} \PYG{n}{num\PYGZus{}talus}\PYG{p}{(}\PYG{n}{e}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{talus\PYGZus{}lengths}\PYG{p}{)} \PYG{o}{==} \PYG{n}{num\PYGZus{}talus}\PYG{p}{(}\PYG{n}{e}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{talus\PYGZus{}lengths}\PYG{p}{)}
+		\PYG{n}{non\PYGZus{}consecutive\PYGZus{}points} \PYG{o}{=} \PYG{n+nb}{abs}\PYG{p}{(}\PYG{n}{e}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{n}{e}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{])} \PYG{o}{!=} \PYG{l+m+mi}{1}
+		\PYG{k}{if} \PYG{n}{same\PYGZus{}talus}\PYG{p}{:}
+			\PYG{k}{if} \PYG{n}{non\PYGZus{}consecutive\PYGZus{}points}\PYG{p}{:}
+				\PYG{n}{wEdges}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{PEdges\PYGZus{}int\PYGZus{}non\PYGZus{}seg}\PYG{p}{)}
+			\PYG{k}{else}\PYG{p}{:}
+				\PYG{n}{wEdges}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{PEdges\PYGZus{}int}\PYG{p}{)}
+		\PYG{k}{else}\PYG{p}{:}
+			\PYG{k}{if} \PYG{n}{edge\PYGZus{}length}\PYG{p}{(}\PYG{n}{e}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{points\PYGZus{}talus}\PYG{p}{)} \PYG{o}{\PYGZgt{}=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{edges\PYGZus{}dist\PYGZus{}max}\PYG{p}{:}
+				\PYG{n}{wEdges}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{Pedges\PYGZus{}ext\PYGZus{}far}\PYG{p}{)}
+			\PYG{k}{else}\PYG{p}{:}
+				\PYG{n}{wEdges}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{PEdges\PYGZus{}ext}\PYG{p}{)}
+	\PYG{n}{wEdges} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{wEdges}\PYG{p}{)}
+	\PYG{n}{weights}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{wEdges}\PYG{p}{)}
+\PYG{c+c1}{\PYGZsh{} ...}
+\end{Verbatim}

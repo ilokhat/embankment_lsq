@@ -1,0 +1,6 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{set\PYGZus{}params}\PYG{p}{(}\PYG{n}{MAX\PYGZus{}ITER}\PYG{o}{=}\PYG{l+m+mi}{250}\PYG{p}{,} \PYG{n}{NORM\PYGZus{}DX}\PYG{o}{=}\PYG{l+m+mf}{0.3}\PYG{p}{,} \PYG{n}{H}\PYG{o}{=}\PYG{l+m+mf}{2.0}\PYG{p}{,} \PYG{n}{DIST}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}MIN\PYGZsq{}}\PYG{p}{,} \PYG{n}{KKT}\PYG{o}{=}\PYG{n+nb+bp}{False}\PYG{p}{,}
+       \PYG{n}{ID\PYGZus{}CONST}\PYG{o}{=}\PYG{n+nb+bp}{True}\PYG{p}{,} \PYG{n}{ANGLES\PYGZus{}CONST}\PYG{o}{=}\PYG{n+nb+bp}{True}\PYG{p}{,} \PYG{n}{EDGES\PYGZus{}CONST}\PYG{o}{=}\PYG{n+nb+bp}{True}\PYG{p}{,} \PYG{n}{DIST\PYGZus{}CONST}\PYG{o}{=}\PYG{n+nb+bp}{True}\PYG{p}{,}
+       \PYG{n}{PEdges\PYGZus{}int}\PYG{o}{=}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{n}{PEdges\PYGZus{}ext}\PYG{o}{=}\PYG{l+m+mi}{2}\PYG{p}{,} \PYG{n}{Pedges\PYGZus{}ext\PYGZus{}far}\PYG{o}{=}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{PEdges\PYGZus{}int\PYGZus{}non\PYGZus{}seg}\PYG{o}{=}\PYG{l+m+mi}{5}\PYG{p}{,}
+       \PYG{n}{PFix}\PYG{o}{=}\PYG{l+m+mf}{1.}\PYG{p}{,} \PYG{n}{PAngles}\PYG{o}{=}\PYG{l+m+mi}{50}\PYG{p}{,} \PYG{n}{PDistRoads}\PYG{o}{=}\PYG{l+m+mi}{1000}\PYG{p}{)}
+\end{Verbatim}

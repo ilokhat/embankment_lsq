@@ -1,0 +1,14 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import} \PYG{n+nn}{numpy} \PYG{k+kn}{as} \PYG{n+nn}{np}
+\PYG{c+c1}{\PYGZsh{} ...}
+\PYG{k}{def} \PYG{n+nf}{compute\PYGZus{}dx}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+	\PYG{c+c1}{\PYGZsh{} if LSDisplacer.KKT:}
+		\PYG{c+c1}{\PYGZsh{} obsolète ...}
+	\PYG{n}{A} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{get\PYGZus{}A}\PYG{p}{()}
+	\PYG{n}{B} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{get\PYGZus{}B}\PYG{p}{()}
+	\PYG{n}{atp} \PYG{o}{=} \PYG{n}{A}\PYG{o}{.}\PYG{n}{T} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{P}
+	\PYG{n}{atpa} \PYG{o}{=} \PYG{n}{atp} \PYG{err}{@} \PYG{n}{A}
+	\PYG{n}{atpb} \PYG{o}{=} \PYG{n}{atp} \PYG{err}{@} \PYG{n}{B}
+	\PYG{n}{dx} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{linalg}\PYG{o}{.}\PYG{n}{lstsq}\PYG{p}{(}\PYG{n}{atpa}\PYG{p}{,} \PYG{n}{atpb}\PYG{p}{,} \PYG{n}{rcond}\PYG{o}{=}\PYG{n+nb+bp}{None}\PYG{p}{)}
+	\PYG{k}{return} \PYG{n}{dx}
+\end{Verbatim}

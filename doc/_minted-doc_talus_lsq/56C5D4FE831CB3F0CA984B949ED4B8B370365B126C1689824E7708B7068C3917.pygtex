@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}points\PYGZus{}talus}\PYG{p}{(}\PYG{n}{shapely\PYGZus{}lines}\PYG{p}{)}
+\end{Verbatim}

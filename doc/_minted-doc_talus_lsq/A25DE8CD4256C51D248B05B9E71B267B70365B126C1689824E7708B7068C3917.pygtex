@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}STRtrees}\PYG{p}{(}\PYG{n}{network\PYGZus{}file}\PYG{p}{,} \PYG{n}{talus\PYGZus{}file}\PYG{p}{)}
+\end{Verbatim}

@@ -1,0 +1,12 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}B}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+	\PYG{c+c1}{\PYGZsh{}...}
+	\PYG{c+c1}{\PYGZsh{} distance from roads}
+	\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{DIST\PYGZus{}CONST}\PYG{p}{:}
+		\PYG{n}{r\PYGZus{}dists} \PYG{o}{=} \PYG{p}{[]}
+		\PYG{k}{for} \PYG{n}{i}\PYG{p}{,} \PYG{n}{r} \PYG{o+ow}{in} \PYG{n+nb}{enumerate}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{roads\PYGZus{}shapes}\PYG{p}{):}
+			\PYG{n}{fk} \PYG{o}{=} \PYG{o}{\PYGZhy{}} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{dist\PYGZus{}F\PYGZus{}vectorized}\PYG{p}{(}\PYG{n}{r}\PYG{p}{,} \PYG{n}{i}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{x\PYGZus{}courant}\PYG{p}{[}\PYG{n}{np}\PYG{o}{.}\PYG{n}{newaxis}\PYG{p}{,:])}
+			\PYG{n}{r\PYGZus{}dists}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{fk}\PYG{o}{.}\PYG{n}{item}\PYG{p}{())}
+		\PYG{c+c1}{\PYGZsh{} ...}
+	\PYG{k}{return} \PYG{n}{b}
+\end{Verbatim}

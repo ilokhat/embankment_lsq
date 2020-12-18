@@ -1,0 +1,31 @@
+=>PYTHONTEX#py#default#defaultverb#0#verbatim#####215#
+	# this is a comment
+	def __init__(self, points_talus, roads_wkts, talus_lengths, edges,
+	buffer=15, edges_dist_min=10, edges_dist_max=30):
+	for i in range(5):
+	print(i)
+=>PYTHONTEX:SETTINGS#
+version=0.17
+outputdir=pythontex-files-doc_talus_lsq
+workingdir=.
+workingdirset=false
+gobble=none
+rerun=default
+hashdependencies=default
+makestderr=false
+stderrfilename=full
+keeptemps=none
+pyfuture=default
+pyconfuture=none
+pygments=true
+pygglobal=:GLOBAL||
+fvextfile=-1
+pyconbanner=none
+pyconfilename=stdin
+depythontex=false
+pygfamily=py|python3|
+pygfamily=pycon|pycon|
+pygfamily=sympy|python3|
+pygfamily=sympycon|pycon|
+pygfamily=pylab|python3|
+pygfamily=pylabcon|pycon|

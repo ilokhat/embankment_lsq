@@ -1,0 +1,16 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}X}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+	\PYG{n}{X} \PYG{o}{=} \PYG{n+nb+bp}{None}
+	\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{ID\PYGZus{}CONST}\PYG{p}{:}
+		\PYG{c+c1}{\PYGZsh{} construire bloc contrainte mouvement}
+	\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{ANGLES\PYGZus{}CONST}\PYG{p}{:}
+		\PYG{c+c1}{\PYGZsh{} construire bloc contrainte angles}
+		\PYG{c+c1}{\PYGZsh{} l\PYGZsq{}ajouter au bloc précédent}
+	\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{EDGES\PYGZus{}CONST}\PYG{p}{:}
+		\PYG{c+c1}{\PYGZsh{} construire bloc contrainte longueurs segments}
+		\PYG{c+c1}{\PYGZsh{} l\PYGZsq{}ajouter au bloc précédent}
+	\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{DIST\PYGZus{}CONST}\PYG{p}{:}
+		\PYG{c+c1}{\PYGZsh{} construire bloc contrainte longueurs segments}
+		\PYG{c+c1}{\PYGZsh{} l\PYGZsq{}ajouter au bloc précédent}
+	\PYG{k}{return} \PYG{n}{X} \PYG{c+c1}{\PYGZsh{} A ou B..}
+\end{Verbatim}

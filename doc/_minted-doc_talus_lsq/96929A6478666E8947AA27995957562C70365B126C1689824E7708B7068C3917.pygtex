@@ -1,0 +1,3 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}edges\PYGZus{}from\PYGZus{}triangulation}\PYG{p}{(}\PYG{n}{points\PYGZus{}talus}\PYG{p}{,} \PYG{n}{talus\PYGZus{}lengths}\PYG{p}{,} \PYG{n}{decimate}\PYG{o}{=}\PYG{n+nb+bp}{False}\PYG{p}{)}
+\end{Verbatim}

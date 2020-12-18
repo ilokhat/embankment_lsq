@@ -1,0 +1,20 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{square}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+	\PYG{c+c1}{\PYGZsh{} ...}
+	\PYG{n}{alpha} \PYG{o}{=} \PYG{l+m+mf}{0.1}
+	\PYG{n}{ro} \PYG{o}{=} \PYG{l+m+mf}{0.1}
+	\PYG{n}{min\PYGZus{}dx} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{inf}
+	\PYG{n}{norm\PYGZus{}float} \PYG{o}{=} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{NORM\PYGZus{}DX}
+	\PYG{k}{for} \PYG{n}{i} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{MAX\PYGZus{}ITER}\PYG{p}{):}
+		\PYG{n}{dx} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{compute\PYGZus{}dx}\PYG{p}{()}
+		\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{x\PYGZus{}courant} \PYG{o}{+=} \PYG{n}{alpha} \PYG{o}{*} \PYG{n}{dx}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]}
+		\PYG{n}{normdx} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{linalg}\PYG{o}{.}\PYG{n}{norm}\PYG{p}{(}\PYG{n}{dx}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{n+nb}{ord}\PYG{o}{=}\PYG{n}{np}\PYG{o}{.}\PYG{n}{inf}\PYG{p}{)}
+		\PYG{n}{alpha} \PYG{o}{=}  \PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{H} \PYG{o}{*} \PYG{n}{ro}\PYG{p}{)} \PYG{o}{/} \PYG{p}{(}\PYG{l+m+mi}{2}\PYG{o}{**}\PYG{l+m+mf}{0.5} \PYG{o}{*} \PYG{n}{normdx}\PYG{p}{)} \PYG{k}{if} \PYG{n}{normdx} \PYG{o}{!=} \PYG{l+m+mi}{0} \PYG{k}{else} \PYG{l+m+mf}{0.1}
+		\PYG{n}{min\PYGZus{}dx} \PYG{o}{=} \PYG{n}{normdx} \PYG{k}{if} \PYG{n}{normdx} \PYG{o}{\PYGZlt{}} \PYG{n}{min\PYGZus{}dx} \PYG{k}{else} \PYG{n}{min\PYGZus{}dx}
+		\PYG{k}{if} \PYG{n}{normdx} \PYG{o}{\PYGZlt{}} \PYG{n}{norm\PYGZus{}float} \PYG{p}{:} \PYG{c+c1}{\PYGZsh{}NORM\PYGZus{}DX :}
+			\PYG{k}{break}
+		\PYG{k}{if} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{FLOATING\PYGZus{}NORM}\PYG{p}{:}
+			\PYG{n}{norm\PYGZus{}float} \PYG{o}{=} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{NORM\PYGZus{}DX} \PYG{k}{if} \PYG{n}{i} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{100} \PYG{k}{else} \PYG{p}{(}\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{NORM\PYGZus{}DX} \PYG{o}{+} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{min\PYGZus{}dx}\PYG{p}{)} \PYG{o}{/} \PYG{l+m+mi}{3}
+	\PYG{c+c1}{\PYGZsh{} ...	}
+	\PYG{k}{return} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{x\PYGZus{}courant}
+\end{Verbatim}

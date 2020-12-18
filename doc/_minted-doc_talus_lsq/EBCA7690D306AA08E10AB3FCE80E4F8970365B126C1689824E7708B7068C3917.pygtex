@@ -1,0 +1,11 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{dist\PYGZus{}F\PYGZus{}vectorized}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{road}\PYG{p}{,} \PYG{n}{i}\PYG{p}{,} \PYG{n}{points\PYGZus{}array}\PYG{p}{):}
+	\PYG{n}{ml} \PYG{o}{=} \PYG{p}{[]}
+	\PYG{k}{for} \PYG{n}{c} \PYG{o+ow}{in} \PYG{n}{points\PYGZus{}array}\PYG{p}{:}
+		\PYG{n}{m} \PYG{o}{=} \PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{\PYGZus{}multiline\PYGZus{}from\PYGZus{}points}\PYG{p}{(}\PYG{n}{c}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{talus\PYGZus{}lengths}\PYG{p}{)}
+		\PYG{n}{ml}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{m}\PYG{p}{)}
+	\PYG{n}{ml} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{ml}\PYG{p}{)}
+	\PYG{n}{dists} \PYG{o}{=} \PYG{n}{pygeos}\PYG{o}{.}\PYG{n}{distance}\PYG{p}{(}\PYG{n}{road}\PYG{p}{,} \PYG{n}{ml}\PYG{p}{)}
+	\PYG{n}{dists} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{where}\PYG{p}{(}\PYG{n}{dists} \PYG{o}{\PYGZgt{}} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{buffers}\PYG{p}{[}\PYG{n}{i}\PYG{p}{],} \PYG{l+m+mf}{0.}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{buffers}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]} \PYG{o}{\PYGZhy{}} \PYG{n}{dists}\PYG{p}{)}
+	\PYG{k}{return} \PYG{n}{dists}
+\end{Verbatim}

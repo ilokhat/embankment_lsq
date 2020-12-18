@@ -1,0 +1,15 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} ...}
+\PYG{c+c1}{\PYGZsh{} on a récupéré les différentes entrées, point\PYGZus{}talus, routes, etc..}
+\PYG{c+c1}{\PYGZsh{} ...}
+
+\PYG{n}{LSDisplacer}\PYG{o}{.}\PYG{n}{set\PYGZus{}params}\PYG{p}{(}\PYG{n}{MAX\PYGZus{}ITER}\PYG{o}{=}\PYG{l+m+mi}{300}\PYG{p}{,} \PYG{n}{NORM\PYGZus{}DX}\PYG{o}{=}\PYG{l+m+mf}{0.3}\PYG{p}{,}
+                       \PYG{n}{PFix}\PYG{o}{=}\PYG{l+m+mf}{8.0}\PYG{p}{,} \PYG{n}{PDistRoads}\PYG{o}{=}\PYG{l+m+mi}{200}\PYG{p}{,} \PYG{n}{PAngles}\PYG{o}{=}\PYG{l+m+mi}{8}\PYG{p}{,}
+                       \PYG{n}{PEdges\PYGZus{}ext}\PYG{o}{=}\PYG{l+m+mi}{15}\PYG{p}{,} \PYG{n}{Pedges\PYGZus{}ext\PYGZus{}far}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{,}
+                       \PYG{n}{PEdges\PYGZus{}int}\PYG{o}{=}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{n}{PEdges\PYGZus{}int\PYGZus{}non\PYGZus{}seg}\PYG{o}{=}\PYG{l+m+mi}{1}\PYG{p}{)}
+
+\PYG{n}{displacer} \PYG{o}{=} \PYG{n}{LSDisplacer}\PYG{p}{(}\PYG{n}{points\PYGZus{}talus}\PYG{p}{,} \PYG{n}{roads}\PYG{p}{,} \PYG{n}{talus\PYGZus{}lengths}\PYG{p}{,} \PYG{n}{edges}\PYG{p}{,} \PYG{n+nb}{buffer}\PYG{o}{=}\PYG{l+m+mi}{15}\PYG{p}{)}
+\PYG{n}{displacer}\PYG{o}{.}\PYG{n}{square}\PYG{p}{()}
+\PYG{k}{for} \PYG{n}{talus} \PYG{o+ow}{in} \PYG{n}{displacer}\PYG{o}{.}\PYG{n}{get\PYGZus{}linestrings\PYGZus{}wkts}\PYG{p}{():}
+    \PYG{k}{print}\PYG{p}{(}\PYG{n}{talus}\PYG{p}{)}
+\end{Verbatim}
