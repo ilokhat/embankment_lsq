@@ -2,3 +2,6 @@
 /.venv/
 /.vscode/
 /__pycache__/
+doc/*.aux
+doc/*.log
+doc/*.gz

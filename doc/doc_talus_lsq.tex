@@ -287,7 +287,7 @@ LSDisplacer.set_params(MAX_ITER=300, NORM_DX=0.3,
                        PEdges_ext=15, Pedges_ext_far=0.5, 
                        PEdges_int=1, PEdges_int_non_seg=1)
 
-displacer = LSDisplacer(points_talus, roads, talus_lengths, edges, buffer=15)
+displacer = LSDisplacer(points_talus, roads, talus_lengths, edges)
 displacer.square()
 for talus in displacer.get_linestrings_wkts():
     print(talus)
